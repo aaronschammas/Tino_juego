@@ -25,7 +25,6 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "create:mock-user": "ts-node create-mock-user.ts",
-    "provision:pilot-users": "ts-node src/scripts/provision-pilot-users.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy"
   },

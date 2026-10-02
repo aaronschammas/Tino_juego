@@ -11,8 +11,8 @@
  *   varios.
  * - `handleMessage()`: el camino de un mensaje, en orden: descartar repetidos,
  *   resolver remitente, controlar el límite de consultas y enrutar. Cada mensaje
- *   de un owner vinculado anota la hora (`touchWindow()`), porque abre la
- *   ventana de 24 horas en la que el resumen diario de Trello sale gratis.
+ *   de un owner vinculado anota la hora (`touchWindow()`): la ventana de 24
+ *   horas de Meta.
  * - `resolveSender()`: saca el `user_id`; si no viene, no atiende el mensaje.
  * - `isDuplicate()`: usa la huella del id de Meta para no contestar dos veces
  *   cuando Meta reintenta la entrega. Solo el choque de clave única cuenta como
@@ -20,8 +20,6 @@
  * - `allowQuery()`: límite de consultas por hora, en memoria.
  * - `handleLinkCommand()`, `handleUnlink()`, `handleSelection()` y
  *   `handleFreeText()`: las cuatro cosas que puede pedir el owner.
- * - `handleDigest()`: el comando "novedades": resumen de Trello de las últimas
- *   24 horas de cada organización vinculada.
  * - `answerIntent()` y `sendMenu()`: la respuesta del asistente y el menú.
  * - `REPLIES`: todos los textos fijos, juntos, para poder revisarlos de un lado.
  *
@@ -46,13 +44,8 @@ import {
 } from './whatsapp-link.service';
 import { formatAssistantAnswer } from './whatsapp-formatter';
 import {
-  DIGEST_PERIOD_MS,
-  WhatsAppDigestService,
-} from './whatsapp-digest.service';
-import {
   buildOrganizationMenuRows,
   buildQueryMenuRows,
-  DIGEST_COMMANDS,
   MENU_COMMANDS,
   parseMenuSelection,
   UNLINK_COMMANDS,
@@ -92,8 +85,6 @@ export const REPLIES = {
     'Tenés varias organizaciones. ¿Sobre cuál querés consultar?',
   menuBody: (organization: string) => `¿Qué querés saber de ${organization}?`,
   menuButton: 'Ver consultas',
-  noNews: (organization: string) =>
-    `No hubo novedades de Trello en ${organization} en las últimas 24 horas.`,
 };
 
 @Injectable()
@@ -106,7 +97,6 @@ export class WhatsAppService {
     private readonly links: WhatsAppLinkService,
     private readonly client: WhatsAppClientService,
     private readonly assistant: AssistantService,
-    private readonly digest: WhatsAppDigestService,
   ) {}
 
   async handleWebhook(payload: WhatsAppWebhookPayload): Promise<void> {
@@ -322,11 +312,6 @@ export class WhatsAppService {
     text: string,
     normalized: string,
   ): Promise<void> {
-    if (DIGEST_COMMANDS.includes(normalized)) {
-      await this.handleDigest(sender, organizations);
-      return;
-    }
-
     if (organizations.length > 1) {
       await this.askOrganization(sender, organizations);
       return;
@@ -358,35 +343,6 @@ export class WhatsAppService {
         }`,
       );
       await this.client.sendText(sender.replyTo, REPLIES.failed);
-    }
-  }
-
-  private async handleDigest(
-    sender: WhatsAppSender,
-    organizations: LinkedOrganization[],
-  ): Promise<void> {
-    const until = new Date();
-    const since = new Date(until.getTime() - DIGEST_PERIOD_MS);
-    for (const organization of organizations) {
-      try {
-        const text = await this.digest.buildDigestText(
-          organization.id,
-          organization.name,
-          since,
-          until,
-        );
-        await this.client.sendText(
-          sender.replyTo,
-          text ?? REPLIES.noNews(organization.name),
-        );
-      } catch (error) {
-        this.logger.error(
-          `El resumen de Trello falló: ${
-            error instanceof Error ? error.message : 'error desconocido'
-          }`,
-        );
-        await this.client.sendText(sender.replyTo, REPLIES.failed);
-      }
     }
   }
 

@@ -15,9 +15,6 @@
  * - `parseMenuSelection()`: interpreta el id que devuelve WhatsApp.
  * - `MENU_COMMANDS` y `UNLINK_COMMANDS`: palabras que vuelven a mostrar el menú o
  *   desvinculan, para quien prefiere escribir.
- * - `DIGEST_COMMANDS`: palabras que piden el resumen de Trello de las últimas 24
- *   horas (es lo que invita a responder la plantilla del resumen diario). No va
- *   como fila del menú porque las diez filas ya están ocupadas.
  *
  * Los límites vienen de Meta: hasta 10 filas por lista, 24 caracteres de título y
  * 72 de descripción. Por eso los títulos son cortos y el detalle va en la
@@ -89,14 +86,6 @@ export const ASSISTANT_MENU_ITEMS: AssistantMenuItem[] = [
 export const SWITCH_ORGANIZATION_ID = 'switch';
 export const MENU_COMMANDS = ['menu', 'hola', 'ayuda', 'buenas', 'buen dia'];
 export const UNLINK_COMMANDS = ['desconectar', 'desvincular'];
-export const DIGEST_COMMANDS = [
-  'novedades',
-  'novedades trello',
-  'novedades de trello',
-  'resumen trello',
-  'resumen de trello',
-  'trello',
-];
 
 export type MenuSelection =
   | { kind: 'query'; organizationId: string; intent: MenuIntent }

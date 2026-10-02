@@ -10,10 +10,6 @@ import { TasksModule } from './modules/tasks/task.module';
 import { TimeTrackingModule } from './modules/time-tracking/time-tracking.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
-import { PlansModule } from './modules/plans/plans.module';
-import { AdminModule } from './modules/admin/admin.module';
-import { TrelloImportModule } from './modules/trello-import/trello-import.module';
-import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { HealthController } from './health.controller';
@@ -39,10 +35,6 @@ import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
     TimeTrackingModule,
     AnalyticsModule,
     OrganizationsModule,
-    PlansModule,
-    AdminModule,
-    TrelloImportModule,
-    IntegrationsModule,
     AssistantModule,
     WhatsAppModule,
   ],

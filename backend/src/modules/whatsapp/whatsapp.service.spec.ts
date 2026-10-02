@@ -50,7 +50,6 @@ describe('WhatsAppService', () => {
   let links: any;
   let client: any;
   let assistant: any;
-  let digest: any;
   let service: WhatsAppService;
 
   beforeEach(() => {
@@ -58,9 +57,6 @@ describe('WhatsAppService', () => {
     prisma = {
       whatsAppProcessedMessage: { create: jest.fn().mockResolvedValue({}) },
       organization: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
-    };
-    digest = {
-      buildDigestText: jest.fn().mockResolvedValue('Novedades de Trello'),
     };
     links = {
       findLinkedOrganizations: jest.fn().mockResolvedValue([ORGANIZATION]),
@@ -86,7 +82,6 @@ describe('WhatsAppService', () => {
       links as never,
       client as never,
       assistant as never,
-      digest as never,
     );
   });
 
@@ -125,43 +120,22 @@ describe('WhatsAppService', () => {
     });
   });
 
-  it('answers "novedades" with the Trello digest of the last 24 hours', async () => {
-    await service.handleWebhook(webhook(textMessage('Novedades')));
-
-    const [organizationId, name, since, until] =
-      digest.buildDigestText.mock.calls[0];
-    expect([organizationId, name]).toEqual(['org-1', 'Empresa']);
-    expect(until.getTime() - since.getTime()).toBe(24 * 60 * 60 * 1000);
-    expect(assistant.query).not.toHaveBeenCalled();
-    expect(client.sendText).toHaveBeenCalledWith(PHONE, 'Novedades de Trello');
-  });
-
-  it('sends one digest per linked organization', async () => {
-    links.findLinkedOrganizations.mockResolvedValue([
-      ORGANIZATION,
-      OTHER_ORGANIZATION,
-    ]);
-    digest.buildDigestText
-      .mockResolvedValueOnce('Novedades de Empresa')
-      .mockResolvedValueOnce(null);
-
-    await service.handleWebhook(webhook(textMessage('resumen de trello')));
-
-    expect(client.sendText).toHaveBeenCalledWith(PHONE, 'Novedades de Empresa');
-    expect(client.sendText).toHaveBeenCalledWith(PHONE, REPLIES.noNews('Otra'));
-    expect(client.sendMenu).not.toHaveBeenCalled();
-  });
-
-  it('tells the owner when the digest fails', async () => {
-    const logError = jest
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => undefined);
-    digest.buildDigestText.mockRejectedValue(new Error('prisma caída'));
+  it('treats "novedades" as free text for the assistant (no Trello digest in the fair build)', async () => {
+    assistant.query.mockResolvedValue({
+      intent: 'unknown',
+      confidence: 0,
+      title: '',
+      summary: '',
+      details: [],
+    });
 
     await service.handleWebhook(webhook(textMessage('novedades')));
 
-    expect(client.sendText).toHaveBeenCalledWith(PHONE, REPLIES.failed);
-    logError.mockRestore();
+    expect(assistant.query).toHaveBeenCalledWith(
+      { id: 'owner-1', organizationId: 'org-1' },
+      { query: 'novedades' },
+    );
+    expect(client.sendMenu).toHaveBeenCalled();
   });
 
   it('answers a menu selection with the assistant of the app', async () => {
