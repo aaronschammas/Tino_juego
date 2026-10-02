@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tino 2.5D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main id="stage">
+    <!-- El canvas tiene resolución interna fija (320x180); CSS lo escala en múltiplos enteros. -->
+    <canvas id="game" aria-label="Juego isométrico pixel art"></canvas>
+    <div id="hud" aria-live="off"></div>
+    <div id="help">WASD / Flechas: mover · Shift: correr · Espacio: saltar</div>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

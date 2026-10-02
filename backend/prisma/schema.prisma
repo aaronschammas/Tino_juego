@@ -1,0 +1,436 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                      String                   @id
+  email                   String                   @unique
+  name                    String
+  lastname                String
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  googleId                String?                  @unique
+  password                String?
+  organizationId          String?
+  isEmailVerified         Boolean?                 @default(false) @map("isemailverified")
+  googleStatus            Boolean                  @default(false)
+  roleId                  String
+  authSessions            AuthSession[]
+  organizationMemberships OrganizationMembership[]
+  projects                Project[]
+  projectMembers          ProjectMember[]
+  assignedTasks           Task[]
+  timeEntries             TimeEntry[]
+  taskComments            TaskComment[]
+  organization            Organization?            @relation(fields: [organizationId], references: [id])
+  role                    Role                     @relation(fields: [roleId], references: [id])
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([googleId])
+  @@index([googleStatus])
+  @@index([isActive])
+  @@index([roleId])
+}
+
+model AuthSession {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  replacedById     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model Organization {
+  id           String                   @id @default(uuid())
+  name         String
+  isActive     Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  planId       String?
+  plan         Plan?                    @relation(fields: [planId], references: [id])
+  invites      OrganizationInvite[]
+  memberships  OrganizationMembership[]
+  projects     Project[]
+  tasks        Task[]
+  timeEntries  TimeEntry[]
+  users        User[]
+  taskComments TaskComment[]
+
+  // Vinculo con WhatsApp: se guarda el user_id (business-scoped user ID) que Meta
+  // envia en cada mensaje, nunca el numero de telefono del owner.
+  whatsappUserId         String?
+  whatsappLinkedByUserId String?
+  whatsappLinkedAt       DateTime?
+  whatsappLinkCodes      WhatsAppLinkCode[]
+  /// Ultimo mensaje del owner por WhatsApp: abre la ventana de 24 h de Meta.
+  whatsappLastInboundAt  DateTime?
+  /// Ultimo resumen diario de Trello enviado (o evaluado sin novedades).
+  whatsappDigestSentAt   DateTime?
+
+  integrationConnections IntegrationConnection[]
+  integrationActivities  IntegrationActivity[]
+
+  @@index([isActive])
+  @@index([whatsappUserId])
+}
+
+/// Codigos de vinculacion de un solo uso. Se guardan hasheados y se borran al
+/// usarse o al vencer, asi que no acumulan datos de la persona.
+model WhatsAppLinkCode {
+  id              String       @id @default(uuid())
+  organizationId  String
+  createdByUserId String
+  codeHash        String       @unique
+  expiresAt       DateTime
+  createdAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([expiresAt])
+}
+
+/// Huellas de los mensajes ya procesados, para no responder dos veces cuando Meta
+/// reintenta la entrega. Se guarda un hash porque el id de Meta puede contener el
+/// numero de telefono codificado.
+model WhatsAppProcessedMessage {
+  idHash     String   @id
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+}
+
+model Plan {
+  id                 String         @id @default(uuid())
+  name               String         @unique
+  title              String
+  description        String?
+  price              Float          @default(0)
+  maxUsers           Int?
+  maxProjects        Int?
+  hasAnalytics       Boolean        @default(false)
+  hasSso             Boolean        @default(false)
+  hasPrioritySupport Boolean        @default(false)
+  hasEmailInvites    Boolean        @default(false)
+  hasAdvancedPerms   Boolean        @default(false)
+  hasAudit           Boolean        @default(false)
+  hasWhatsApp        Boolean        @default(false)
+  hasIntegrations    Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  organizations      Organization[]
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model OrganizationMembership {
+  id             String           @id @default(uuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(ORG_MEMBER)
+  /// Cuando cerro por ultima vez el cartel de novedades de Trello.
+  activitySeenAt DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model OrganizationInvite {
+  id             String                   @id @default(uuid())
+  organizationId String
+  email          String
+  role           OrganizationRole         @default(ORG_MEMBER)
+  token          String                   @unique
+  expiresAt      DateTime
+  status         OrganizationInviteStatus @default(PENDING)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
+model Project {
+  id                    String                 @id @default(uuid())
+  name                  String
+  description           String?
+  dueDate               DateTime?
+  priority              Priority               @default(MEDIUM)
+  externalSource        String?
+  externalId            String?
+  ownerId               String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  isActive              Boolean                @default(true)
+  organizationId        String
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner                 User                   @relation(fields: [ownerId], references: [id])
+  members               ProjectMember[]
+  tasks                 Task[]
+  timeEntries           TimeEntry[]
+  integrationConnection IntegrationConnection?
+  integrationActivities IntegrationActivity[]
+
+  @@unique([organizationId, externalSource, externalId])
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([isActive])
+}
+
+model TaskComment {
+  id                 String       @id @default(uuid())
+  content            String
+  externalSource     String?
+  externalId         String?
+  externalAuthorName String?
+  taskId             String
+  authorId           String?
+  organizationId     String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+  task               Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author             User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, externalSource, externalId])
+  @@index([organizationId, taskId, createdAt])
+  @@index([authorId])
+}
+
+model Task {
+  id               String        @id @default(uuid())
+  title            String
+  description      String?
+  status           TaskStatus    @default(TODO)
+  priority         Priority      @default(MEDIUM)
+  externalSource   String?
+  externalId       String?
+  externalUrl      String?
+  externalGroupId  String?
+  archivedAt       DateTime?
+  externalSnapshot Json?
+  dueDate          DateTime?
+  projectId        String
+  assignedToId     String?
+  parentTaskId     String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  organizationId   String
+  estimatedHours   Float?
+  assignedTo       User?         @relation(fields: [assignedToId], references: [id])
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parentTask       Task?         @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subTasks         Task[]        @relation("SubTasks")
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  timeEntries      TimeEntry[]
+  comments         TaskComment[]
+  activities       IntegrationActivity[]
+
+  @@unique([organizationId, externalSource, externalId])
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([assignedToId])
+  @@index([organizationId, projectId, parentTaskId])
+  @@index([organizationId, projectId, status])
+}
+
+/// Conexion de un proyecto con un contenedor externo (tablero de Trello). Una por proyecto.
+/// El token del proveedor se guarda cifrado con AES-256-GCM y nunca se devuelve al frontend.
+model IntegrationConnection {
+  id                    String                     @id @default(uuid())
+  organizationId        String
+  projectId             String                     @unique
+  provider              IntegrationProvider
+  externalContainerId   String
+  externalContainerName String
+  externalContainerUrl  String?
+  accessTokenEnc        String
+  status                IntegrationStatus          @default(ACTIVE)
+  connectedByUserId     String
+  webhookId             String?
+  lastSyncedAt          DateTime?
+  lastEventAt           DateTime?
+  lastSyncError         String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  organization          Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project               Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  statusMappings        IntegrationStatusMapping[]
+  events                IntegrationEvent[]
+
+  @@unique([organizationId, provider, externalContainerId])
+  @@index([organizationId])
+}
+
+/// Equivalencia entre una lista externa y un estado de Tino. status null = el usuario todavia no la definio.
+model IntegrationStatusMapping {
+  id                String                @id @default(uuid())
+  connectionId      String
+  externalGroupId   String
+  externalGroupName String
+  status            TaskStatus?
+  connection        IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalGroupId])
+}
+
+/// Registro de cada evento recibido de un proveedor. Evita procesar dos veces el mismo
+/// evento (Trello reintenta) y guarda quien hizo el cambio para el timer automatico futuro.
+model IntegrationEvent {
+  id              String                 @id @default(uuid())
+  connectionId    String
+  externalEventId String
+  type            String
+  itemExternalId  String?
+  actorExternalId String?
+  actorName       String?
+  status          IntegrationEventStatus
+  error           String?
+  occurredAt      DateTime?
+  receivedAt      DateTime               @default(now())
+  connection      IntegrationConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalEventId])
+  @@index([connectionId, receivedAt])
+}
+
+/// Novedades que llegaron de un proveedor externo (tarea nueva, cambio de estado,
+/// archivada). Alimentan el cartel de la app y el resumen diario por WhatsApp.
+model IntegrationActivity {
+  id             String                  @id @default(uuid())
+  organizationId String
+  projectId      String
+  taskId         String
+  kind           IntegrationActivityKind
+  fromStatus     TaskStatus?
+  toStatus       TaskStatus?
+  actorName      String?
+  occurredAt     DateTime                @default(now())
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task           Task                    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, occurredAt])
+  @@index([taskId])
+}
+
+model TimeEntry {
+  id             String       @id @default(uuid())
+  userId         String
+  projectId      String
+  startTime      DateTime
+  endTime        DateTime?
+  createdAt      DateTime     @default(now())
+  organizationId String
+  lastHeartbeat  DateTime?
+  pausedAt       DateTime?
+  totalPausedMs  Int          @default(0)
+  taskId         String?
+  targetMinutes  Int          @default(30)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task           Task?        @relation(fields: [taskId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([taskId])
+  @@index([organizationId, projectId, startTime])
+  @@index([userId, endTime])
+}
+
+model ProjectMember {
+  id        String      @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(MEMBER)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+enum OrganizationRole {
+  ORG_OWNER
+  ORG_MEMBER
+}
+
+enum OrganizationInviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum IntegrationProvider {
+  TRELLO
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+enum IntegrationEventStatus {
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
+enum IntegrationActivityKind {
+  TASK_CREATED
+  STATUS_CHANGED
+  TASK_ARCHIVED
+}
+
+enum ProjectRole {
+  OWNER
+  MEMBER
+}

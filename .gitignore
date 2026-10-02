@@ -1,0 +1,13 @@
+.env
+.gemini
+notas.md
+.github/copilot-instructions.md
+.env.local
+.env.development.local
+backend/pilot-users.local.json
+Tino idea 1/
+graphify-out/
+CLAUDE.md
+.claude/
+*.tsbuildinfo
+pa subir git

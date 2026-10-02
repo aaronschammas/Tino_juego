@@ -1,0 +1,39 @@
+# Dependencias locales (CRÍTICO: Evita colisiones de binarios entre SO local y Linux)
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn.lock
+
+# Compilación local (Obliga a Docker a compilar su propio dist)
+dist/
+build/
+out/
+
+# Variables de entorno y secretos (NUNCA deben ir dentro de una imagen de producción)
+.env
+.env.*
+!.env.example
+
+# Archivos de control de versiones y metadatos del Sistema Operativo
+.git
+.gitignore
+.dockerignore
+.DS_Store
+Thumbs.db
+
+# Tests, Cobertura y depuración (Peso innecesario en la imagen de producción)
+coverage/
+.nyc_output/
+test/
+e2e/
+
+# Logs generados localmente
+logs/
+*.log
+
+# Archivos de IDE y editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj

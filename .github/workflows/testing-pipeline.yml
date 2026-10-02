@@ -1,0 +1,260 @@
+name: Build & Deploy (Testing)
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+concurrency:
+  group: testing-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: tino-backend-testing
+  GCP_REGION: us-central1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  test-backend:
+    name: Backend Unit Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        working-directory: ./backend
+        run: npm run test:cov
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Generate coverage summary
+        working-directory: ./backend
+        run: |
+          cat > /tmp/coverage-summary.txt <<'EOF'
+          === Test Results Summary ===
+          EOF
+          if [ -f coverage/coverage-final.json ]; then
+            npm run test:cov 2>&1 | grep -E "Tests:|Test Suites:|Lines" >> /tmp/coverage-summary.txt || true
+          fi
+          cat /tmp/coverage-summary.txt
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+
+  test-frontend:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: ./frontend
+        run: npm run test -- --coverage --passWithNoTests
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+
+  build-and-push:
+    name: Build & Push to Docker Hub
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: 
+      name: testing
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        id: docker
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
+
+  migrate-testing:
+    name: Apply database migrations (Testing)
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && success()
+    runs-on: ubuntu-latest
+    environment:
+      name: testing
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate deploy
+
+  deploy-testing:
+    name: Deploy to testing
+    needs: [build-and-push, migrate-testing]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && success()
+    runs-on: ubuntu-latest
+    environment:
+      name: testing
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Create env file for Cloud Run
+        run: |
+          cat > /tmp/env-vars.yaml <<EOF
+          DATABASE_URL: "${{ secrets.DATABASE_URL }}"
+          JWT_SECRET: "${{ secrets.JWT_SECRET }}"
+          CORS_ALLOWED_ORIGINS: "${{ secrets.CORS_ALLOWED_ORIGINS }}"
+          FRONTEND_URL: "${{ secrets.FRONTEND_URL }}"
+          GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
+          GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          GOOGLE_REDIRECT_URI: "${{ secrets.GOOGLE_REDIRECT_URI }}"
+          GOOGLE_LINK_REDIRECT_URI: "${{ secrets.GOOGLE_LINK_REDIRECT_URI }}"
+          GOOGLE_LOGIN_REDIRECT_URI: "${{ secrets.GOOGLE_LOGIN_REDIRECT_URI }}"
+          ENV: testing
+          DEBUG: "false"
+          INTEGRATIONS_ENABLED: "true"
+          TRELLO_API_KEY: "${{ secrets.TRELLO_API_KEY }}"
+          INTEGRATIONS_ENCRYPTION_KEY: "${{ secrets.INTEGRATIONS_ENCRYPTION_KEY }}"
+          TRELLO_API_SECRET: "${{ secrets.TRELLO_API_SECRET }}"
+          INTEGRATIONS_WEBHOOK_BASE_URL: "${{ secrets.INTEGRATIONS_WEBHOOK_BASE_URL }}"
+          INTEGRATIONS_RECONCILE_TOKEN: "${{ secrets.INTEGRATIONS_RECONCILE_TOKEN }}"
+          WHATSAPP_PHONE_NUMBER_ID: "${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}"
+          WHATSAPP_ACCESS_TOKEN: "${{ secrets.WHATSAPP_ACCESS_TOKEN }}"
+          WHATSAPP_APP_SECRET: "${{ secrets.WHATSAPP_APP_SECRET }}"
+          WHATSAPP_VERIFY_TOKEN: "${{ secrets.WHATSAPP_VERIFY_TOKEN }}"
+          WHATSAPP_BUSINESS_NUMBER: "${{ secrets.WHATSAPP_BUSINESS_NUMBER }}"
+          WHATSAPP_DIGEST_TEMPLATE: "${{ secrets.WHATSAPP_DIGEST_TEMPLATE }}"
+          EOF
+        
+      - name: Deploy Backend to Cloud Run (Testing)
+        run: |
+          gcloud run deploy tino-backend-testing \
+            --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 512Mi \
+            --cpu 1 \
+            --max-instances 1 \
+            --min-instances 0 \
+            --timeout 300 \
+            --concurrency 50 \
+            --env-vars-file /tmp/env-vars.yaml \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+            
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          URL=$(gcloud run services describe tino-backend-testing --platform managed --region ${{ env.GCP_REGION }} --format 'value(status.url)' --project ${{ secrets.GCP_PROJECT_ID }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Verify backend readiness
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 5 --retry-all-errors "${{ steps.backend-url.outputs.url }}/health/ready"
+
+      - name: Deploy Frontend to Vercel (Preview)
+        working-directory: ./frontend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}      
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel@latest
+          
+          # 1. Enlazamos la configuración dentro de la carpeta frontend
+          vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+          
+          # 2. Desplegamos delegando la compilación a Vercel e inyectando la URL
+          DEPLOYMENT_URL=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }} --build-env BACKEND_API_URL="${{ steps.backend-url.outputs.url }}" --env BACKEND_API_URL="${{ steps.backend-url.outputs.url }}")
+          
+          echo "✅ Compilación delegada. URL efímera: $DEPLOYMENT_URL"
+          
+          # 3. Asignamos el Alias fijo
+          vercel alias set $DEPLOYMENT_URL tino-tasks-testing.vercel.app --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Verify testing frontend
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 5 --retry-all-errors https://tino-tasks-testing.vercel.app/

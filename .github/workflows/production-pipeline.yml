@@ -1,0 +1,257 @@
+name: Deploy Production (Manual Gate)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: tino-backend-production
+  GCP_REGION: us-central1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+
+jobs:
+  validate-production-ref:
+    name: Validate production branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require main branch
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "Production deployments must be dispatched from the main branch." >&2
+            exit 1
+          fi
+
+  test-backend:
+    name: Backend Unit Test
+    needs: validate-production-ref
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        working-directory: ./backend
+        run: npm run test:cov
+
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+
+      - name: Generate coverage summary
+        working-directory: ./backend
+        run: |
+          cat > /tmp/coverage-summary.txt <<'EOF'
+          === Test Results Summary ===
+          EOF
+          if [ -f coverage/coverage-final.json ]; then
+            npm run test:cov 2>&1 | grep -E "Tests:|Test Suites:|Lines" >> /tmp/coverage-summary.txt || true
+          fi
+          cat /tmp/coverage-summary.txt
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/
+
+  test-frontend:
+    name: Frontend Unit Tests
+    needs: validate-production-ref
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: ./frontend
+        run: npm run test -- --coverage --passWithNoTests
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+
+  build-and-push:
+    name: Build & Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: [validate-production-ref, test-backend, test-frontend]
+    environment: 
+      name: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        id: docker
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }}
+
+  migrate-production:
+    name: Apply database migrations (Production)
+    needs: [validate-production-ref, build-and-push]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate deploy
+
+  deploy-production:
+    name: Deploy to production
+    needs: [validate-production-ref, build-and-push, migrate-production]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Create env file for Cloud Run
+        run: |
+          cat > /tmp/env-vars.yaml <<EOF
+          DATABASE_URL: "${{ secrets.DATABASE_URL }}"
+          JWT_SECRET: "${{ secrets.JWT_SECRET }}"
+          CORS_ALLOWED_ORIGINS: "${{ secrets.CORS_ALLOWED_ORIGINS }}"
+          FRONTEND_URL: "${{ secrets.FRONTEND_URL }}"
+          GOOGLE_CLIENT_ID: "${{ secrets.GOOGLE_CLIENT_ID }}"
+          GOOGLE_CLIENT_SECRET: "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          GOOGLE_REDIRECT_URI: "${{ secrets.GOOGLE_REDIRECT_URI }}"
+          GOOGLE_LINK_REDIRECT_URI: "${{ secrets.GOOGLE_LINK_REDIRECT_URI }}"
+          GOOGLE_LOGIN_REDIRECT_URI: "${{ secrets.GOOGLE_LOGIN_REDIRECT_URI }}"
+          ENV: production
+          DEBUG: "false"
+          WHATSAPP_PHONE_NUMBER_ID: "${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}"
+          WHATSAPP_ACCESS_TOKEN: "${{ secrets.WHATSAPP_ACCESS_TOKEN }}"
+          WHATSAPP_APP_SECRET: "${{ secrets.WHATSAPP_APP_SECRET }}"
+          WHATSAPP_VERIFY_TOKEN: "${{ secrets.WHATSAPP_VERIFY_TOKEN }}"
+          WHATSAPP_BUSINESS_NUMBER: "${{ secrets.WHATSAPP_BUSINESS_NUMBER }}"
+          EOF
+        
+      - name: Deploy Backend to Cloud Run (Production)
+        run: |
+          gcloud run deploy tino-backend-production \
+            --image docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 2Gi \
+            --cpu 1 \
+            --max-instances 1 \
+            --min-instances 0 \
+            --timeout 300 \
+            --concurrency 50 \
+            --env-vars-file /tmp/env-vars.yaml \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+            
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          URL=$(gcloud run services describe tino-backend-production --platform managed --region ${{ env.GCP_REGION }} --format 'value(status.url)' --project ${{ secrets.GCP_PROJECT_ID }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Verify backend readiness
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 5 --retry-all-errors "${{ steps.backend-url.outputs.url }}/health/ready"
+
+      - name: Deploy Frontend to Vercel (Production)
+        working-directory: ./frontend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}      
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel@latest
+
+          # 1. Enlazamos la configuración estricta de producción
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+          # 2. Desplegamos a PRODUCCIÓN. 
+          # El flag --prod le ordena a Vercel enrutar este despliegue a tu dominio comprado automáticamente.
+          DEPLOYMENT_URL=$(vercel deploy --yes --prod --token=${{ secrets.VERCEL_TOKEN }} --build-env BACKEND_API_URL="${{ steps.backend-url.outputs.url }}" --env BACKEND_API_URL="${{ steps.backend-url.outputs.url }}")
+
+          curl --fail --silent --show-error --retry 10 --retry-delay 5 --retry-all-errors "$DEPLOYMENT_URL"
+
+          echo " Despliegue de producción exitoso. Tu dominio comprado ha sido actualizado."

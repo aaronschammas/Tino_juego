@@ -1,0 +1,38 @@
+{
+  "organizationName": "Grido / Helacor - Piloto",
+  "projectName": "Proyecto piloto Grido",
+  "planName": "pro",
+  "allowedEmailDomain": "helacor.com.ar",
+  "users": [
+    {
+      "email": "robert.posse@helacor.com.ar",
+      "name": "REEMPLAZAR_NOMBRE",
+      "lastname": "REEMPLAZAR_APELLIDO",
+      "organizationRole": "ORG_OWNER"
+    },
+    {
+      "email": "usuario2@helacor.com.ar",
+      "name": "REEMPLAZAR_NOMBRE",
+      "lastname": "REEMPLAZAR_APELLIDO",
+      "organizationRole": "ORG_MEMBER"
+    },
+    {
+      "email": "usuario3@helacor.com.ar",
+      "name": "REEMPLAZAR_NOMBRE",
+      "lastname": "REEMPLAZAR_APELLIDO",
+      "organizationRole": "ORG_MEMBER"
+    },
+    {
+      "email": "usuario4@helacor.com.ar",
+      "name": "REEMPLAZAR_NOMBRE",
+      "lastname": "REEMPLAZAR_APELLIDO",
+      "organizationRole": "ORG_MEMBER"
+    },
+    {
+      "email": "usuario5@helacor.com.ar",
+      "name": "REEMPLAZAR_NOMBRE",
+      "lastname": "REEMPLAZAR_APELLIDO",
+      "organizationRole": "ORG_MEMBER"
+    }
+  ]
+}
