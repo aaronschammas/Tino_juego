@@ -15,6 +15,11 @@ if (!jwtSecret) {
 
 type ResolvedAuthUser = Record<string, any>;
 
+/** Modo feria: sin login, toda request sin sesión válida actúa como el usuario demo. */
+export function isPublicDemoMode(): boolean {
+    return process.env.DEMO_MODE === 'true' && Boolean(process.env.DEMO_USER_EMAIL?.trim());
+}
+
 @Injectable()
 export class AuthGuard implements CanActivate {
     private static readonly USER_CACHE_TTL_MS = 60_000;
@@ -24,6 +29,7 @@ export class AuthGuard implements CanActivate {
         string,
         { expiresAt: number; user: ResolvedAuthUser }
     >();
+    private demoUserId: string | null = null;
 
     constructor(
         private readonly jwtService: JwtService,
@@ -33,52 +39,75 @@ export class AuthGuard implements CanActivate {
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
         const token = this.extractTokenFromCookie(request);
+        const sessionUser = token ? await this.resolveSessionUser(token) : null;
 
-        if (!token) {
-            throw new UnauthorizedException('Token no proporcionado');
+        if (sessionUser) {
+            request.user = sessionUser;
+            return true;
         }
 
+        if (isPublicDemoMode()) {
+            request.user = await this.resolveDemoUser();
+            return true;
+        }
+
+        throw new UnauthorizedException(
+            token ? 'Token invalido o expirado' : 'Token no proporcionado',
+        );
+    }
+
+    /** Usuario de la cookie de sesión; null si el token no es válido o el usuario no puede entrar. */
+    private async resolveSessionUser(token: string): Promise<ResolvedAuthUser | null> {
         try {
             const payload = await this.jwtService.verifyAsync(token, {
                 secret: jwtSecret,
             });
-
-            let resolvedUser = this.readCachedUser(payload?.sub);
-
-            if (!resolvedUser) {
-                const user = await this.prisma.user.findUnique({
-                    where: { id: payload.sub },
-                    include: { role: { select: { name: true } } },
-                });
-
-                if (!user) {
-                    throw new UnauthorizedException('Usuario no encontrado');
-                }
-
-                if (!user.isActive) {
-                    throw new UnauthorizedException('Usuario inactivo');
-                }
-
-                const { role, ...userFields } = user;
-
-                resolvedUser = {
-                    ...userFields,
-                    sub: user.id,
-                    role: role.name.trim(),
-                };
-
-                this.writeCachedUser(payload.sub, resolvedUser);
-            }
-
-            request.user = {
-                ...resolvedUser,
-                sessionId: payload.sid,
-            };
+            const user = await this.loadUser(payload?.sub);
+            return user ? { ...user, sessionId: payload.sid } : null;
         } catch {
-            throw new UnauthorizedException('Token invalido o expirado');
+            return null;
+        }
+    }
+
+    /** Usuario demo de DEMO_USER_EMAIL (lo crea prisma/seed-feria.ts). */
+    private async resolveDemoUser(): Promise<ResolvedAuthUser> {
+        if (!this.demoUserId) {
+            const email = process.env.DEMO_USER_EMAIL!.trim().toLowerCase();
+            const demo = await this.prisma.user.findUnique({
+                where: { email },
+                select: { id: true },
+            });
+            this.demoUserId = demo?.id ?? null;
         }
 
-        return true;
+        const user = this.demoUserId ? await this.loadUser(this.demoUserId) : null;
+        if (!user) {
+            this.demoUserId = null;
+            throw new UnauthorizedException('Usuario demo no cargado: corré prisma/seed-feria.ts');
+        }
+        return user;
+    }
+
+    /** Usuario activo con su rol, cacheado un minuto. */
+    private async loadUser(userId: unknown): Promise<ResolvedAuthUser | null> {
+        const cached = this.readCachedUser(userId);
+        if (cached) return cached;
+        if (typeof userId !== 'string' || userId.length === 0) return null;
+
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { role: { select: { name: true } } },
+        });
+        if (!user || !user.isActive) return null;
+
+        const { role, ...userFields } = user;
+        const resolvedUser = {
+            ...userFields,
+            sub: user.id,
+            role: role.name.trim(),
+        };
+        this.writeCachedUser(userId, resolvedUser);
+        return resolvedUser;
     }
 
     invalidateCachedUser(userId: string) {

@@ -327,11 +327,11 @@ describe('AuthContext and AuthProvider', () => {
 
       // Assert
       expect(authLib.clearAllAuth).toHaveBeenCalled();
-      expect(mockRouter.replace).toHaveBeenCalledWith('/login');
+      expect(mockRouter.replace).toHaveBeenCalledWith('/');
       expect(result.current?.user).toBeNull();
     });
 
-    it('should navigate to login on logout', async () => {
+    it('should navigate home on logout (no login in the fair build)', async () => {
       // Arrange
       (authLib.getToken as jest.Mock).mockReturnValue(null);
       (authLib.getStoredUser as jest.Mock).mockReturnValue(null);
@@ -348,7 +348,7 @@ describe('AuthContext and AuthProvider', () => {
       });
 
       // Assert
-      expect(mockRouter.replace).toHaveBeenCalledWith('/login');
+      expect(mockRouter.replace).toHaveBeenCalledWith('/');
     });
   });
 

@@ -17,10 +17,8 @@ export default function MobileProtectedLayout({ children }: { children: React.Re
 
   useEffect(() => {
     if (isLoading || redirected.current) return;
-    if (!user) {
-      redirected.current = true;
-      router.replace('/login?next=%2Fmobile');
-    } else if (user.requiresInternalPasswordSetup) {
+    if (!user) return;
+    if (user.requiresInternalPasswordSetup) {
       redirected.current = true;
       router.replace('/auth/setup-password');
     } else if (!activeOrganization) {
@@ -33,7 +31,8 @@ export default function MobileProtectedLayout({ children }: { children: React.Re
   }, [activeOrganization, isLoading, router, user]);
 
   if (isLoading) return <FullScreenState pulse>Cargando espacio de trabajo...</FullScreenState>;
-  if (!user || user.requiresInternalPasswordSetup || !activeOrganization || !activeOrganization.plan) {
+  if (!user) return <FullScreenState>No se pudo conectar con Tino. Revisá que el backend esté levantado.</FullScreenState>;
+  if (user.requiresInternalPasswordSetup || !activeOrganization || !activeOrganization.plan) {
     return <FullScreenState>Redirigiendo...</FullScreenState>;
   }
   if (isSwitchingOrganization) return <FullScreenState pulse>Cambiando espacio de trabajo...</FullScreenState>;

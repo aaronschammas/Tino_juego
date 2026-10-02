@@ -210,68 +210,22 @@ describe('ProtectedLayout Component', () => {
   });
 
   describe('Unauthenticated User', () => {
-    it('should redirect to login when user is not authenticated', async () => {
-      // Arrange
+    it('does not redirect to login: Tino is public in the fair build', async () => {
       mockUseAuth.mockReturnValue({
         user: null,
         isLoading: false,
       });
 
-      // Act
       render(
         <ProtectedLayout>
           <div>Content</div>
         </ProtectedLayout>
       );
 
-      // Assert
+      expect(screen.getByText(/no se pudo conectar con tino/i)).toBeInTheDocument();
       await waitFor(() => {
-        expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('/login'));
+        expect(mockReplace).not.toHaveBeenCalled();
       });
-    });
-
-    it('should include current pathname in redirect URL', async () => {
-      // Arrange
-      mockUseAuth.mockReturnValue({
-        user: null,
-        isLoading: false,
-      });
-
-      Object.defineProperty(window, 'location', {
-        value: { pathname: '/projects/123', search: '' },
-        writable: true,
-      });
-
-      // Act
-      render(
-        <ProtectedLayout>
-          <div>Content</div>
-        </ProtectedLayout>
-      );
-
-      // Assert
-      await waitFor(() => {
-        expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('projects'));
-        expect(mockReplace).toHaveBeenCalledWith(expect.stringContaining('123'));
-      });
-    });
-
-    it('should display redirecting message while redirecting', () => {
-      // Arrange
-      mockUseAuth.mockReturnValue({
-        user: null,
-        isLoading: false,
-      });
-
-      // Act
-      render(
-        <ProtectedLayout>
-          <div>Content</div>
-        </ProtectedLayout>
-      );
-
-      // Assert
-      expect(screen.getByText(/redirigiendo/i)).toBeInTheDocument();
     });
 
     it('should not render navbar when unauthenticated', () => {
@@ -292,35 +246,4 @@ describe('ProtectedLayout Component', () => {
       expect(screen.queryByTestId('navbar')).not.toBeInTheDocument();
     });
   });
-
-  describe('Edge Cases', () => {
-    it('should handle redirect only once', async () => {
-      // Arrange
-      mockUseAuth.mockReturnValue({
-        user: null,
-        isLoading: false,
-      });
-
-      // Act
-      const { rerender } = render(
-        <ProtectedLayout>
-          <div>Content</div>
-        </ProtectedLayout>
-      );
-
-      await waitFor(() => {
-        expect(mockReplace).toHaveBeenCalledTimes(1);
-      });
-
-      // Assert
-      rerender(
-        <ProtectedLayout>
-          <div>Content</div>
-        </ProtectedLayout>
-      );
-
-      expect(mockReplace).toHaveBeenCalledTimes(1);
-    });
-  });
 });
-

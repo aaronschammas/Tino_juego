@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import BrandMark from '@/components/brand/BrandMark';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function MobileHeader() {
-  const { activeOrganization, memberships, switchOrganization, isSwitchingOrganization, logout } = useAuth();
+  const { activeOrganization, memberships, switchOrganization, isSwitchingOrganization } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +41,6 @@ export default function MobileHeader() {
             ))}
           </select>
         </label>
-        <button className="mobile-icon-button" onClick={() => void logout()} aria-label="Cerrar sesion"><LogOut size={20} aria-hidden="true" /></button>
       </div>
       {error && <p id="mobile-org-error" role="alert" className="mobile-header-error">{error}</p>}
     </header>

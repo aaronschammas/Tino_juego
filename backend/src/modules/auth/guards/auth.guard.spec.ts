@@ -559,4 +559,83 @@ describe('AuthGuard', () => {
       );
     });
   });
+  describe('Feria demo mode (DEMO_MODE=true)', () => {
+    const contextWith = (cookies: Record<string, string>) => {
+      const request: Record<string, any> = { cookies };
+      return {
+        request,
+        context: { switchToHttp: () => ({ getRequest: () => request }) } as unknown as ExecutionContext,
+      };
+    };
+    const demoUser = { id: 'demo-1', email: 'demo@tino-demo.local', isActive: true, role: { name: 'USER' } };
+
+    beforeEach(() => {
+      process.env.DEMO_MODE = 'true';
+      process.env.DEMO_USER_EMAIL = 'Demo@Tino-Demo.local';
+    });
+
+    afterEach(() => {
+      delete process.env.DEMO_MODE;
+      delete process.env.DEMO_USER_EMAIL;
+    });
+
+    it('acts as the demo user when there is no session cookie', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'demo-1' })
+        .mockResolvedValueOnce(demoUser);
+      const { request, context } = contextWith({});
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenNthCalledWith(1, {
+        where: { email: 'demo@tino-demo.local' },
+        select: { id: true },
+      });
+      expect(request.user).toMatchObject({ id: 'demo-1', sub: 'demo-1', role: 'USER' });
+    });
+
+    it('falls back to the demo user when the token is invalid', async () => {
+      mockJwtService.verifyAsync.mockRejectedValue(new Error('expired'));
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'demo-1' })
+        .mockResolvedValueOnce(demoUser);
+      const { request, context } = contextWith({ access_token: 'expired' });
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+      expect(request.user.id).toBe('demo-1');
+    });
+
+    it('keeps a valid session user instead of the demo user', async () => {
+      mockJwtService.verifyAsync.mockResolvedValue({ sub: 'user-7', sid: 'session-7' });
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'user-7', isActive: true, role: { name: 'ADMIN' } });
+      const { request, context } = contextWith({ access_token: 'valid' });
+
+      await guard.canActivate(context);
+
+      expect(request.user).toMatchObject({ id: 'user-7', sessionId: 'session-7' });
+    });
+
+    it('caches the demo user id between requests', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'demo-1' })
+        .mockResolvedValueOnce(demoUser);
+
+      await guard.canActivate(contextWith({}).context);
+      await guard.canActivate(contextWith({}).context);
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails clearly when the demo user was not seeded', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(guard.canActivate(contextWith({}).context)).rejects.toThrow('seed-feria');
+    });
+
+    it('still requires a session when DEMO_MODE is off', async () => {
+      process.env.DEMO_MODE = 'false';
+
+      await expect(guard.canActivate(contextWith({}).context)).rejects.toThrow(UnauthorizedException);
+    });
+  });
 });

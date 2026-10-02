@@ -181,15 +181,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [commitContext, invalidateOperations, isCurrentOperation]);
 
   useEffect(() => {
-    const handleUnauthorized = (e: Event) => {
-      const { next } = (e as CustomEvent<{ next?: string }>).detail;
+    const handleUnauthorized = () => {
       invalidateOperations();
       pendingOrganizationRef.current = null;
       clearClientSession();
       commitContext(null);
       setIsLoading(false);
       setIsSwitchingOrganization(false);
-      router.replace(next ? `/login?next=${next}` : '/login');
+      router.replace('/');
     };
 
     const handleAuthCleared = () => {
@@ -365,7 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
     setIsSwitchingOrganization(false);
     setOrganizationSwitchError(null);
-    router.replace('/login');
+    router.replace('/');
 
     // Keep client invalidation immediate, but send logout after an already-active
     // switch so the logout response is the last one that can modify auth cookies.

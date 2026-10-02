@@ -4,13 +4,11 @@ Vanilla JavaScript + `<canvas>`, sin dependencias ni build. Todo el arte se gene
 
 ## Ejecutar
 
-Los módulos ES no cargan con doble clic (`file://`), hace falta un servidor:
+Lo sirve el Next.js de Tino como archivo estático: con `.\feria.ps1` levantado, abrir
+http://localhost:3000/juego/index.html (o "Empezar a jugar" en la página de inicio, que lo muestra
+al lado de Tino en /feria). **WASD / Flechas** mover · **Shift** correr · **Espacio** saltar.
 
-```bash
-node juego/server.js
-```
-
-Abrir http://localhost:5173 — **WASD / Flechas** mover · **Shift** correr · **Espacio** saltar.
+Es el prototipo previo a la fase 2 del plan, donde el juego pasa a Phaser.
 
 ## Estructura
 

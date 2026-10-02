@@ -142,32 +142,14 @@ describe('Navbar Component', () => {
   });
 
   describe('User Menu', () => {
-    it('should have logout button in user menu', async () => {
-      // Arrange & Act
+    it('does not offer logout: Tino is public in the fair build', async () => {
       const user = userEvent.setup();
       render(<Navbar />);
 
-      // Assert
       const menuButton = screen.getByText('John Doe').closest('button');
       await user.click(menuButton!);
-      const logoutButton = await screen.findByRole('button', { name: /cerrar sesion|logout|cerrar|salir/i });
-      expect(logoutButton).toBeInTheDocument();
-    });
 
-    it('should call logout when logout button is clicked', async () => {
-      // Arrange
-      const user = userEvent.setup();
-      render(<Navbar />);
-
-      // Act
-      const menuButton = screen.getByText('John Doe').closest('button');
-      await user.click(menuButton!);
-      
-      const logoutButton = await screen.findByRole('button', { name: /cerrar sesion|logout|cerrar|salir/i });
-      await user.click(logoutButton);
-
-      // Assert
-      expect(mockLogout).toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: /cerrar sesion/i })).not.toBeInTheDocument();
     });
   });
 

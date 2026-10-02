@@ -28,10 +28,11 @@ describe('MobileProtectedLayout', () => {
     expect(screen.queryByTestId('timer-widget')).not.toBeInTheDocument();
   });
 
-  it('redirects unauthenticated users to login with the mobile return path', async () => {
+  it('does not redirect to login: Tino is public in the fair build', async () => {
     mockUseAuth.mockReturnValue({ isLoading: false, user: null, activeOrganization: null });
     render(<MobileProtectedLayout>Tenant content</MobileProtectedLayout>);
-    await waitFor(() => expect(replace).toHaveBeenCalledWith('/login?next=%2Fmobile'));
+    expect(screen.getByText(/no se pudo conectar con tino/i)).toBeInTheDocument();
+    await waitFor(() => expect(replace).not.toHaveBeenCalled());
   });
 
   it('preserves password setup and organization onboarding rules', async () => {

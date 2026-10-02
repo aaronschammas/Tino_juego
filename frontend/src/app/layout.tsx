@@ -14,7 +14,6 @@ export const metadata: Metadata = {
     icon: '/logo-tino.png',
     apple: '/apple-touch-icon.png',
   },
-  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

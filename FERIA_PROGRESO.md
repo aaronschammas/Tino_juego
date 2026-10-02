@@ -31,10 +31,24 @@ WhatsAppDigestService ni IntegrationsController; PermissionUser, CurrentUser, Pr
 - **Landing (`app/page.tsx`) → /feria**: se hace en la fase 2, cuando /feria exista.
 - **package.json** (phaser, zustand): se agregan en la fase 2, cuando se usen.
 
+## Acceso público (sin login)
+
+Pedido para poder probar el juego sin credenciales:
+
+- **Backend**: con `DEMO_MODE=true`, `AuthGuard` usa al usuario demo (`DEMO_USER_EMAIL`) cuando la request no
+  trae una sesión válida. Todos los endpoints siguen recibiendo un usuario real (organización, permisos y datos),
+  pero nadie tiene que loguearse. Con `DEMO_MODE` apagado el guard se comporta igual que en Tino original.
+  **Nunca activar DEMO_MODE fuera de la feria.**
+- **Frontend**: se borraron `/login` y `useRequireAuth`; los layouts protegidos ya no redirigen a /login
+  (si no hay usuario muestran "No se pudo conectar con Tino") y se quitaron los botones de cerrar sesión.
+- **Inicio**: `/` es solo el cartel "Empezar a jugar", que lleva a `/feria`.
+- **/feria**: pantalla dividida, Tino real (`/dashboard`) a la izquierda y el prototipo pixel art
+  (`frontend/public/juego`) a la derecha. Es la base de la fase 2: ahí entran Phaser, el store y las reglas.
+
 ## Cómo levantarlo
 
 ```powershell
-.eria.ps1              # levanta todo y abre http://localhost:3000 (usuario y clave en .env.feria)
+.eria.ps1              # levanta todo y abre http://localhost:3000 (no pide login)
 .eria.ps1 reset-demo   # rehace la empresa demo
 .eria.ps1 logs | stop | clean
 ```

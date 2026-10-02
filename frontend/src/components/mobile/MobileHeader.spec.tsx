@@ -25,7 +25,7 @@ describe('MobileHeader', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /organizacion activa/i }), 'org-2');
     await waitFor(() => expect(switchOrganization).toHaveBeenCalledWith('org-2'));
     expect(replace).toHaveBeenCalledWith('/mobile');
-    expect(screen.getByRole('button', { name: /cerrar sesion/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cerrar sesion/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /abrir perfil/i })).not.toBeInTheDocument();
   });
 

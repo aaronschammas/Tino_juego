@@ -18,14 +18,6 @@ export default function ProtectedLayout({
   const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !user && !hasRedirected.current) {
-      hasRedirected.current = true;
-      const next = encodeURIComponent(window.location.pathname + window.location.search);
-      router.replace(`/login?next=${next}`);
-    }
-  }, [user, isLoading, router]);
-
-  useEffect(() => {
     if (
       !isLoading &&
       user?.requiresInternalPasswordSetup &&
@@ -58,7 +50,7 @@ export default function ProtectedLayout({
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)]">
         <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5 text-[13.5px] font-medium text-[var(--color-text-muted)] shadow-[var(--shadow-lg)]">
-          Redirigiendo...
+          No se pudo conectar con Tino. Revisá que el backend esté levantado.
         </div>
       </div>
     );

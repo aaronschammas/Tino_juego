@@ -8,13 +8,12 @@ import { isAdmin, isSuperAdmin } from '@/lib/auth';
 import BrandMark from '@/components/brand/BrandMark';
 import { cn } from '@/lib/cn';
 import { formatUserDisplayName } from '@/lib/user-display';
-import { LayoutDashboard, Folder, Users, Trash2, LogOut, ChevronDown, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Folder, Users, Trash2, ChevronDown, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
   const {
     user,
-    logout,
     activeOrganization,
     activeMembership,
     memberships = [],
@@ -202,19 +201,6 @@ export default function Navbar() {
                 </div>
               )}
 
-              {/* Logout Button */}
-              <div className="mt-1 pt-1 border-t border-slate-50">
-                <button 
-                  onClick={() => {
-                    logout();
-                    setIsUserMenuOpen(false);
-                  }}
-                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-[14px] font-bold text-red-500 hover:bg-red-50 transition-all"
-                >
-                  <LogOut size={18} />
-                  Cerrar sesion
-                </button>
-              </div>
             </div>
           )}
         </div>
@@ -285,16 +271,6 @@ export default function Navbar() {
                   </p>
                 </div>
               )}
-              <button
-                onClick={() => {
-                  logout();
-                  handleCloseMobileMenu();
-                }}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white border border-red-100 px-5 py-3 text-[14px] font-bold text-red-500 shadow-sm active:bg-red-50 transition-all"
-              >
-                <LogOut size={18} />
-                Cerrar sesion
-              </button>
             </div>
 
             {/* Navigation Section */}
