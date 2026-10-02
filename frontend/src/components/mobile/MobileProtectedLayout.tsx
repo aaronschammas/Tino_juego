@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import MobileBottomNav from './MobileBottomNav';
 import MobileHeader from './MobileHeader';
-import MobileInstallPrompt from './MobileInstallPrompt';
 
 function FullScreenState({ children, pulse = false }: { children: React.ReactNode; pulse?: boolean }) {
   return <div className="mobile-fullscreen-state"><p className={pulse ? 'animate-pulse' : ''}>{children}</p></div>;
@@ -42,7 +41,7 @@ export default function MobileProtectedLayout({ children }: { children: React.Re
   return (
     <div className="mobile-shell">
       <MobileHeader />
-      <main className="mobile-content">{children}<MobileInstallPrompt /></main>
+      <main className="mobile-content">{children}</main>
       <MobileBottomNav />
     </div>
   );

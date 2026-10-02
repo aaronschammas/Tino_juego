@@ -19,7 +19,6 @@ const TaskForm = dynamic(() => import('@/components/tasks/TaskForm'), { ssr: fal
 const ReportModal = dynamic(() => import('@/components/reports/ReportModal'), { ssr: false });
 import EmptyState from '@/components/ui/EmptyState';
 import NoticeBanner from '@/components/ui/NoticeBanner';
-import IntegrationActivityBanner from '@/components/integrations/IntegrationActivityBanner';
 import { useDashboardV2 } from '@/hooks/useDashboardV2';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
@@ -221,7 +220,6 @@ export default function BIDashboardPage() {
               onOpenReport={() => setShowReport(true)}
             />
           </div>
-          <IntegrationActivityBanner className="mb-6" />
         </div>
 
         {!showOrganizationOnboarding ? (

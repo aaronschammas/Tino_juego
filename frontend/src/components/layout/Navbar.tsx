@@ -8,7 +8,7 @@ import { isAdmin, isSuperAdmin } from '@/lib/auth';
 import BrandMark from '@/components/brand/BrandMark';
 import { cn } from '@/lib/cn';
 import { formatUserDisplayName } from '@/lib/user-display';
-import { LayoutDashboard, Folder, Users, User, Trash2, Star, LogOut, ChevronDown, Menu, X, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Folder, Users, Trash2, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -33,10 +33,6 @@ export default function Navbar() {
     { href: '/projects', label: 'Proyectos', icon: Folder },
     { href: '/users', label: 'Usuarios', icon: Users },
   ];
-
-  if (isSuperAdmin(user)) {
-    navItems.push({ href: '/admin-panel', label: 'Administración', icon: ShieldCheck });
-  }
 
   const isActive = (href: string) => pathname === href;
   const userDisplayName = formatUserDisplayName(user?.name, user?.lastname) || user?.email || 'Usuario';
@@ -206,27 +202,6 @@ export default function Navbar() {
                 </div>
               )}
 
-              {/* Menu Links */}
-              <div className="space-y-0.5">
-                <Link 
-                  href="/perfil?tab=personal" 
-                  onClick={() => setIsUserMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-[14px] font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1e3a5f] transition-all"
-                >
-                  <User size={18} className="text-slate-400" />
-                  Mi perfil
-                </Link>
-
-                <Link 
-                  href="/perfil?tab=billing" 
-                  onClick={() => setIsUserMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-[14px] font-bold text-slate-600 hover:bg-slate-50 hover:text-[#1e3a5f] transition-all"
-                >
-                  <Star size={18} className="text-slate-400" />
-                  Planes y facturacion
-                </Link>
-              </div>
-
               {/* Logout Button */}
               <div className="mt-1 pt-1 border-t border-slate-50">
                 <button 
@@ -347,21 +322,6 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              <Link
-                href="/perfil?tab=personal"
-                className={cn(
-                  'flex items-center gap-4 rounded-2xl px-6 py-4 text-[16px] font-bold transition-all',
-                  isActive('/perfil') 
-                    ? 'bg-[#1e3a5f] shadow-xl shadow-blue-900/20 scale-[1.02]' 
-                    : 'text-slate-600 hover:bg-slate-50'
-                )}
-                onClick={handleCloseMobileMenu}
-              >
-                <User size={22} className={isActive('/perfil') ? 'text-white' : 'text-slate-400'} />
-                <span className={isActive('/perfil') ? 'text-white' : 'text-slate-600'}>
-                  Perfil
-                </span>
-              </Link>
             </div>
 
             <div className="mt-auto text-center pt-8">

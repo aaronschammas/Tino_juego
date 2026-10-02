@@ -31,10 +31,6 @@ jest.mock('@/components/dashboard/DashboardHeader', () => {
   function DashboardHeader() { return <div>Dashboard header</div>; }
   return DashboardHeader;
 });
-jest.mock('@/components/integrations/IntegrationActivityBanner', () => {
-  function IntegrationActivityBanner() { return <div>Novedades de Trello</div>; }
-  return IntegrationActivityBanner;
-});
 jest.mock('@/components/dashboard/DashboardSlicers', () => {
   function DashboardSlicers({ projects }: { projects: Array<{ name: string }> }) {
     return <div>Dashboard filters: {projects.map((project) => project.name).join(', ')}</div>;
@@ -167,7 +163,6 @@ describe('Dashboard page v2', () => {
     expect(screen.getByText('Tasa de completitud: 40%')).toBeInTheDocument();
     expect(screen.getByText('Heatmap minutes: 120')).toBeInTheDocument();
     expect(screen.getByText('Tarea crítica del backend')).toBeInTheDocument();
-    expect(screen.getByText('Novedades de Trello')).toBeInTheDocument();
   });
 
   it('renders KPIs before the heatmap section is available', async () => {

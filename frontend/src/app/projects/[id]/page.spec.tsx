@@ -41,12 +41,6 @@ const mockTasksApi = {
   deleteTask: jest.fn(),
 };
 
-jest.mock('@/components/integrations/ProjectIntegrationPanel', () => {
-  function ProjectIntegrationPanel({ canManage }: { canManage: boolean }) {
-    return <div>Integration panel {canManage ? 'manage' : 'read-only'}</div>;
-  }
-  return ProjectIntegrationPanel;
-});
 jest.mock('@/hooks/useTasks', () => ({
   useTasks: () => mockTasksApi,
 }));

@@ -26,7 +26,7 @@ describe('MobileHeader', () => {
     await waitFor(() => expect(switchOrganization).toHaveBeenCalledWith('org-2'));
     expect(replace).toHaveBeenCalledWith('/mobile');
     expect(screen.getByRole('button', { name: /cerrar sesion/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /abrir perfil/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /abrir perfil/i })).not.toBeInTheDocument();
   });
 
   it('shows a generic error and keeps the confirmed selection after failure', async () => {

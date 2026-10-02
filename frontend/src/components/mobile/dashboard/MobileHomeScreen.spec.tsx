@@ -7,10 +7,6 @@ import { useTimer } from '@/context/TimerContext';
 jest.mock('@/hooks/useMobileHome', () => ({ useMobileHome: jest.fn() }));
 jest.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { name: 'Ana' }, activeOrganization: { name: 'Acme' } }) }));
 jest.mock('@/context/TimerContext', () => ({ useTimer: jest.fn() }));
-jest.mock('@/components/integrations/IntegrationActivityBanner', () => ({
-  __esModule: true,
-  default: () => <div data-testid="integration-activity-banner" />,
-}));
 const retry = jest.fn();
 const home = {
   tasks: { overdue: [], upcoming: [], inProgress: [] },
@@ -35,7 +31,6 @@ describe('MobileHomeScreen', () => {
     expect(screen.getByText('2.00 h')).toBeInTheDocument();
     expect(screen.getByText(/no tenés tareas vencidas/i)).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: /accesos rápidos/i })).toBeInTheDocument();
-    expect(screen.getByTestId('integration-activity-banner')).toBeInTheDocument();
   });
 
   it.each([

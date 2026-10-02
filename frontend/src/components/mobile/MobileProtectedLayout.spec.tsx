@@ -11,9 +11,6 @@ jest.mock('./MobileHeader', () => {
 jest.mock('./MobileBottomNav', () => {
   return function MockMobileBottomNav() { return <nav data-testid="mobile-nav">Mobile nav</nav>; };
 });
-jest.mock('./MobileInstallPrompt', () => {
-  return function MockMobileInstallPrompt() { return <aside data-testid="install-prompt">Install</aside>; };
-});
 
 const organization = { id: 'org-1', name: 'Tino', plan: { id: 'plan-1', name: 'free', title: 'Free', maxUsers: 3, maxProjects: 3 } };
 const user = { id: 'user-1', organizationId: 'org-1', requiresInternalPasswordSetup: false };

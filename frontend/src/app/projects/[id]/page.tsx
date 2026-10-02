@@ -16,7 +16,7 @@ import { TimeEntry } from "@/types/time";
 import { ApiClientError, apiGet, apiPost } from "@/lib/api";
 import { useTasks } from "@/hooks/useTasks";
 import { useAuth } from "@/hooks/useAuth";
-import { canManageProject, isOrgOwner } from "@/lib/auth";
+import { canManageProject } from "@/lib/auth";
 import { useTimerControls } from "@/context/TimerContext";
 import { useOrganizationMembers } from "@/hooks/useOrganizationMembers";
 import { formatDateUTC, secondsToHMS } from "@/lib/time";
@@ -24,7 +24,6 @@ import LinkTimeModal from "@/components/projects/LinkTimeModal";
 import TaskDetailPanel from "@/components/tasks/TaskDetailPanel";
 import StartTimerDurationModal from "@/components/tasks/StartTimerDurationModal";
 import ProjectMemberModal from "@/components/projects/ProjectMemberModal";
-import ProjectIntegrationPanel from "@/components/integrations/ProjectIntegrationPanel";
 
 const PROJECT_REFRESH_DELAY_MS = 250;
 
@@ -513,11 +512,6 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
-          <ProjectIntegrationPanel
-            projectId={project.id}
-            canManage={isOrgOwner(user, userRole)}
-          />
-
           {actionMessage ? (
             <div className="mb-6">
               <NoticeBanner tone="warning" title="Seguimiento de tiempo">

@@ -5,7 +5,6 @@ import { ArrowRight, Clock3, ListTodo, PieChart, Play } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMobileHome } from '@/hooks/useMobileHome';
 import { useTimer } from '@/context/TimerContext';
-import IntegrationActivityBanner from '@/components/integrations/IntegrationActivityBanner';
 import type { MobileHomeTasks } from '@/types/mobile-dashboard';
 
 function duration(seconds: number) {
@@ -55,8 +54,6 @@ export default function MobileHomeScreen() {
         <h1>Hola, {user?.name ?? 'equipo'}</h1>
         <p>Tu jornada, en una mirada.</p>
       </header>
-
-      <IntegrationActivityBanner />
 
       <section className={`mobile-timer-card ${timer.activeTimer ? 'is-active' : ''}`} aria-labelledby="home-timer-title" aria-live="polite">
         <div><p className="mobile-eyebrow">Prioridad actual</p><h2 id="home-timer-title">{timerLabel}</h2></div>

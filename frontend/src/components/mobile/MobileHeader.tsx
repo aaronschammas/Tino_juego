@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LogOut, UserRound } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import BrandMark from '@/components/brand/BrandMark';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,7 +42,6 @@ export default function MobileHeader() {
             ))}
           </select>
         </label>
-        <a href="/perfil" className="mobile-icon-button" aria-label="Abrir perfil"><UserRound size={20} aria-hidden="true" /></a>
         <button className="mobile-icon-button" onClick={() => void logout()} aria-label="Cerrar sesion"><LogOut size={20} aria-hidden="true" /></button>
       </div>
       {error && <p id="mobile-org-error" role="alert" className="mobile-header-error">{error}</p>}

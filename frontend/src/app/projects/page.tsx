@@ -4,13 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import ProtectedLayout from '@/components/layout/ProtectedLayout';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
-import { isAdmin, isSuperAdmin, isOrgOwner, canManageProject } from '@/lib/auth';
+import { isAdmin, isOrgOwner, canManageProject } from '@/lib/auth';
 import { useOrganizations } from '@/hooks/useOrganizations';
 import ProjectCard from '@/components/projects/ProjectCard';
 import ProjectForm from '@/components/projects/ProjectForm';
-import TrelloImportModal from '@/components/projects/TrelloImportModal';
-import TrelloConnectModal from '@/components/integrations/TrelloConnectModal';
-import { useIntegrationAvailability } from '@/hooks/useIntegrations';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import EmptyState from '@/components/ui/EmptyState';
@@ -18,7 +15,7 @@ import NoticeBanner from '@/components/ui/NoticeBanner';
 import { Project, CreateProjectDto } from '@/types/project';
 import { translateErrorMessage } from '@/lib/errorMessages';
 import { cn } from '@/lib/cn';
-import { Search, Plus, Folder, Activity, Pause, DownloadCloud, CheckCircle2, ListTodo, Users, Link2 } from 'lucide-react';
+import { Search, Plus, Folder, Activity, Pause, CheckCircle2, ListTodo, Users } from 'lucide-react';
 
 type FilterType = 'all' | 'active' | 'paused';
 
@@ -56,7 +53,6 @@ export default function ProjectsPage() {
     createProject,
     updateProject,
     deleteProject,
-    refetch,
   } = useProjects();
   const { user } = useAuth();
   const { getMyOrganization } = useOrganizations();
@@ -68,9 +64,6 @@ export default function ProjectsPage() {
   const [roleFetchError, setRoleFetchError] = useState(false);
   const [projectPendingDeletion, setProjectPendingDeletion] = useState<Project | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [showTrelloImport, setShowTrelloImport] = useState(false);
-  const [showTrelloConnect, setShowTrelloConnect] = useState(false);
-  const { availability: integrations } = useIntegrationAvailability();
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -173,28 +166,6 @@ export default function ProjectsPage() {
             </div>
 
             <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
-              {integrations?.canManage ? (
-                <Button
-                  onClick={() => setShowTrelloConnect(true)}
-                  variant="secondary"
-                  className="h-14 rounded-2xl px-8 font-bold shadow-sm"
-                >
-                  <Link2 size={20} className="mr-2" />
-                  Conectar Trello
-                </Button>
-              ) : null}
-
-              {isSuperAdmin(user) ? (
-                <Button
-                  onClick={() => setShowTrelloImport(true)}
-                  variant="secondary"
-                  className="h-14 rounded-2xl px-8 font-bold shadow-sm"
-                >
-                  <DownloadCloud size={20} className="mr-2" />
-                  Importar desde Trello
-                </Button>
-              ) : null}
-
               <Button
                 onClick={() => setShowForm(true)}
                 disabled={!canCreateProject || projectLimitReached}
@@ -250,17 +221,6 @@ export default function ProjectsPage() {
                     <Plus size={20} className="mr-2" />
                     Crear primer proyecto
                   </Button>
-
-                  {isSuperAdmin(user) ? (
-                    <Button
-                      onClick={() => setShowTrelloImport(true)}
-                      variant="secondary"
-                      className="h-14 rounded-2xl px-7 font-bold"
-                    >
-                      <DownloadCloud size={20} className="mr-2" />
-                      Importar desde Trello
-                    </Button>
-                  ) : null}
                 </div>
 
                 {!canCreateProject ? (
@@ -421,25 +381,6 @@ export default function ProjectsPage() {
             onCancel={handleCancel}
           />
         )}
-
-        <TrelloImportModal
-          isOpen={showTrelloImport}
-          projects={projects}
-          onClose={() => setShowTrelloImport(false)}
-          onImported={async () => {
-            await refetch({ background: true });
-          }}
-        />
-
-        {showTrelloConnect ? (
-          <TrelloConnectModal
-            projects={projects}
-            onClose={() => setShowTrelloConnect(false)}
-            onConnected={async () => {
-              await refetch({ background: true });
-            }}
-          />
-        ) : null}
 
         <ConfirmDialog
           isOpen={projectPendingDeletion !== null}

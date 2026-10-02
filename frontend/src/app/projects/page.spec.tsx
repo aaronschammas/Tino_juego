@@ -7,7 +7,6 @@ const updateProject = jest.fn();
 const deleteProject = jest.fn();
 const refetch = jest.fn();
 const getMyOrganization = jest.fn();
-const mockUseIntegrationAvailability = jest.fn();
 
 jest.mock('@/components/layout/ProtectedLayout', () => {
   function ProtectedLayout({ children }: { children: React.ReactNode }) { return <>{children}</>; }
@@ -21,17 +20,6 @@ jest.mock('@/components/projects/ProjectForm', () => {
   function ProjectForm() { return <div>Project form modal</div>; }
   return ProjectForm;
 });
-jest.mock('@/components/projects/TrelloImportModal', () => {
-  function TrelloImportModal() { return null; }
-  return TrelloImportModal;
-});
-jest.mock('@/components/integrations/TrelloConnectModal', () => {
-  function TrelloConnectModal() { return <div>Trello connect modal</div>; }
-  return TrelloConnectModal;
-});
-jest.mock('@/hooks/useIntegrations', () => ({
-  useIntegrationAvailability: () => mockUseIntegrationAvailability(),
-}));
 jest.mock('@/hooks/useProjects', () => ({
   useProjects: () => ({
     projects: [],
@@ -63,33 +51,12 @@ describe('ProjectsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getMyOrganization.mockResolvedValue({ userRole: 'ORG_OWNER' });
-    mockUseIntegrationAvailability.mockReturnValue({ availability: null, isLoading: false });
   });
 
-  it('hides the Trello connection when the organization cannot manage integrations', () => {
-    mockUseIntegrationAvailability.mockReturnValue({
-      availability: { enabled: true, canManage: false, reason: 'OWNER_REQUIRED' },
-      isLoading: false,
-    });
-
+  it('does not offer Trello actions in the fair build', () => {
     render(<ProjectsPage />);
 
-    expect(screen.queryByRole('button', { name: /conectar trello/i })).not.toBeInTheDocument();
-  });
-
-  it('opens the Trello connection modal for owners with integrations enabled', async () => {
-    const user = userEvent.setup();
-    mockUseIntegrationAvailability.mockReturnValue({
-      availability: { enabled: true, canManage: true, reason: null },
-      isLoading: false,
-    });
-
-    render(<ProjectsPage />);
-    expect(screen.queryByText('Trello connect modal')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /conectar trello/i }));
-
-    expect(screen.getByText('Trello connect modal')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /trello/i })).not.toBeInTheDocument();
   });
 
   it('shows a first-project onboarding state when there are no projects', async () => {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useRef, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { Search, UserPlus, Mail, Shield, Grid, List, Plus, Users, Filter, LayoutGrid } from 'lucide-react';
 import ProtectedLayout from '@/components/layout/ProtectedLayout';
 import { useUsers } from '@/hooks/useUsers';
@@ -269,12 +268,6 @@ export default function UsersPage() {
                   </p>
                 </div>
               </div>
-              <Link 
-                href="/perfil?tab=billing"
-                className="bg-white px-5 py-2 rounded-lg text-[13px] font-bold text-slate-800 shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors shrink-0 flex items-center justify-center"
-              >
-                Ver planes
-              </Link>
             </div>
           )}
 
@@ -448,12 +441,6 @@ export default function UsersPage() {
                       Tu plan {user?.organizationPlan?.title || 'actual'} tiene un limite de {user?.organizationPlan?.maxUsers || 1} {user?.organizationPlan?.maxUsers === 1 ? 'miembro' : 'miembros'}. 
                       Para sumar mas personas, deberas actualizar a un plan superior.
                     </p>
-                    <Link 
-                      href="/perfil?tab=billing"
-                      className="bg-white px-6 py-2.5 rounded-xl text-[14px] font-bold text-slate-800 shadow-sm border border-slate-100 hover:bg-slate-50 transition-colors flex items-center justify-center"
-                    >
-                      Ver planes disponibles
-                    </Link>
                   </div>
                 ) : pendingTeamMembers.length === 0 ? (
                   <EmptyState
