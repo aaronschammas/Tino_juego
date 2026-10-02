@@ -7,7 +7,6 @@ notas.md
 backend/pilot-users.local.json
 Tino idea 1/
 graphify-out/
-CLAUDE.md
-.claude/
+.claude/settings.local.json
 *.tsbuildinfo
 pa subir git

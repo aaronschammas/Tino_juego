@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "juego",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["juego/server.js"],
+      "port": 5173
+    }
+  ]
+}
