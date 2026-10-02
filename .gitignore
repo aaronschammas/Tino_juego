@@ -10,3 +10,4 @@ graphify-out/
 .claude/settings.local.json
 *.tsbuildinfo
 pa subir git
+.env.feria

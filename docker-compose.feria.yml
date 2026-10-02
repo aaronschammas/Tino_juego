@@ -1,0 +1,89 @@
+# Tino Feria: todo local, sin internet (Postgres + backend NestJS + frontend Next.js).
+#
+# Primera vez:   cp .env.feria.example .env.feria   (y cambiar JWT_SECRET)
+# Levantar:      docker compose -f docker-compose.feria.yml up -d --build
+# Si algo falla: docker compose -f docker-compose.feria.yml restart
+# Base de cero:  docker compose -f docker-compose.feria.yml down -v
+#
+# Tino queda en http://localhost:3000 (el backend solo se publica en 8080 para depurar).
+name: tino-feria
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tino-feria-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tino
+      POSTGRES_PASSWORD: tino
+      POSTGRES_DB: tino
+      TZ: America/Argentina/Buenos_Aires
+    ports:
+      - '5433:5432'
+    volumes:
+      - tino-feria-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tino -d tino']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: tino-feria-backend
+    restart: unless-stopped
+    env_file:
+      - .env.feria
+    environment:
+      - DATABASE_URL=postgresql://tino:tino@db:5432/tino
+      - DIRECT_URL=postgresql://tino:tino@db:5432/tino
+      - PORT=8080
+      - TZ=America/Argentina/Buenos_Aires
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - '8080:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/dist
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+    command: >
+      sh -c "npx prisma migrate deploy && npx prisma generate && npm run start:dev"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tino-feria-frontend
+    restart: unless-stopped
+    env_file:
+      - .env.feria
+    environment:
+      - BACKEND_API_URL=http://backend:8080
+      - TZ=America/Argentina/Buenos_Aires
+      - WATCHPACK_POLLING=true
+    ports:
+      - '3000:3000'
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+volumes:
+  tino-feria-db:
