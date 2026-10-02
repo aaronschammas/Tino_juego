@@ -24,6 +24,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "seed:feria": "ts-node --transpile-only prisma/seed-feria.ts",
     "create:mock-user": "ts-node create-mock-user.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy"

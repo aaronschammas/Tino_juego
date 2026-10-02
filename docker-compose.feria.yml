@@ -60,7 +60,7 @@ services:
       retries: 40
       start_period: 20s
     command: >
-      sh -c "npx prisma migrate deploy && npx prisma generate && npm run start:dev"
+      sh -c "npx prisma migrate deploy && npx prisma generate && npx ts-node --transpile-only prisma/seed.ts && npx ts-node --transpile-only prisma/seed-feria.ts && npm run start:dev"
 
   frontend:
     build:

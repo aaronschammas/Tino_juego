@@ -10,7 +10,7 @@ y se cierran con un commit.
 | 0.1 | git, limpieza de raíz (.github, docs, Resumenes, test-results), CLAUDE.md, grafo local | ✅ | grafo responde desde esta carpeta |
 | 0.2 | Backend: sin admin, plans, trello-import, integrations, digest de WhatsApp ni piloto | ✅ | `tsc --noEmit` + jest: 93 suites, 1443 tests |
 | 0.3 | Frontend: sin admin, registro, invitaciones, Google, perfil, workspace, Trello, PWA, legales | ✅ | `tsc --noEmit` + jest: 93 suites, 985 tests; lint sin warnings nuevos |
-| 0.4 | `docker-compose.feria.yml` + `.env.feria.example` (reemplazan docker-compose.yml y .env.example) | ⏳ compose válido; falta levantarlo | `docker compose -f docker-compose.feria.yml up -d --build` y probar login, proyectos, timer, dashboard, mobile y asistente |
+| 0.4 | `docker-compose.feria.yml` + `.env.feria.example` + `feria.ps1` + empresa demo base | ✅ | En Docker: login por el proxy, dashboard con 12 tareas y 181 h, heatmap, /users, /mobile, asistente |
 
 Verificación del grafo (4.7): `graphify explain` no encuentra TrelloImportService, AdminService, PlansService,
 WhatsAppDigestService ni IntegrationsController; PermissionUser, CurrentUser, PrismaService y useAuth siguen.
@@ -31,11 +31,35 @@ WhatsAppDigestService ni IntegrationsController; PermissionUser, CurrentUser, Pr
 - **Landing (`app/page.tsx`) → /feria**: se hace en la fase 2, cuando /feria exista.
 - **package.json** (phaser, zustand): se agregan en la fase 2, cuando se usen.
 
+## Cómo levantarlo
+
+```powershell
+.eria.ps1              # levanta todo y abre http://localhost:3000 (usuario y clave en .env.feria)
+.eria.ps1 reset-demo   # rehace la empresa demo
+.eria.ps1 logs | stop | clean
+```
+
+Al arrancar, el backend aplica migraciones, corre `prisma/seed.ts` (planes y roles) y `prisma/seed-feria.ts`
+(empresa "Tino Demo", usuario demo, 5 compañeros, 3 proyectos, 12 tareas y 3 semanas de horas). El seed demo
+solo se carga si la empresa no existe, así que reiniciar no borra lo que se hizo.
+
+### Hallazgos al levantarlo
+
+- `npm run prisma:seed` no compilaba en el Tino original: `tsconfig.json` tiene `"types": ["jest"]` y deja
+  afuera los tipos de Node. Los seeds se corren con `ts-node --transpile-only` (el tipado lo cubren tsc y jest).
+- El dashboard toma por defecto el rango desde la creación de la organización y cuenta tareas por `createdAt`:
+  el seed fecha empresa, proyectos y tareas antes del historial para que los gráficos tengan datos.
+- El proxy `app/api/[...path]` rechaza con 403 lo que no viene del mismo origen: confirma que /feria y los
+  iframes tienen que vivir en el mismo Next.js (como dice el plan).
+- El asistente solo reconoce "atrasadas" con frases tipo "tareas atrasadas/vencidas"; "¿qué está atrasado?"
+  da `unknown`. Para el coach de Mobile y WhatsApp hay que usar frases que funcionen o ampliar los patrones.
+
 ## Próximas fases
 
 - **Fase 1 — Modo demo (backend)**: partes previstas
   1.1 DemoModule con `DEMO_MODE` + `POST /demo/session`
-  1.2 DemoSeedService (empresa, usuarios, historial) + `POST /demo/reset { scenario }`
+  1.2 DemoSeedService + `POST /demo/reset { scenario }` (la base ya está en `src/modules/demo/demo-seed.ts`;
+      falta sumar las tareas de cada escenario y el WhatsApp vinculado)
   1.3 `GET /demo/state`
   1.4 CapturingWhatsAppClient + `POST /demo/whatsapp/inbound` + `GET /demo/whatsapp/messages`
 - **Fase 2 — Esqueleto de /feria** (escenario Web de punta a punta).
