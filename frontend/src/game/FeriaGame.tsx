@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 
 export interface DemoScenarioSummary {
@@ -11,6 +11,7 @@ export interface DemoScenarioSummary {
 }
 
 const ROTATION_KEY = 'feria:rotation';
+const TINO_REFRESH_EVENTS = ['task:updated', 'time:updated', 'projects:updated', 'focus'];
 
 /** Respuesta de la API: el backend envuelve los datos en `data`. */
 async function readData<T>(response: Response): Promise<T> {
@@ -41,8 +42,16 @@ function writeRotation(value: number) {
   }
 }
 
+/** Hace que el Tino del iframe vuelva a leer tareas y timer (mismo origen: se le disparan sus propios eventos). */
+export function refreshTino(frame: HTMLIFrameElement | null) {
+  const target = frame?.contentWindow;
+  if (!target) return;
+  for (const name of TINO_REFRESH_EVENTS) target.dispatchEvent(new Event(name));
+}
+
 /** Pantalla de juego: Tino real a la izquierda (el proyecto del escenario) y el juego a la derecha. */
 export default function FeriaGame() {
+  const tinoFrame = useRef<HTMLIFrameElement>(null);
   const [scenarios, setScenarios] = useState<DemoScenarioSummary[]>([]);
   const [current, setCurrent] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -68,6 +77,15 @@ export default function FeriaGame() {
     } finally {
       setIsResetting(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'feria:tino-changed') return;
+      refreshTino(tinoFrame.current);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
   }, []);
 
   useEffect(() => {
@@ -136,6 +154,7 @@ export default function FeriaGame() {
         {projectId && current ? (
           <>
             <iframe
+              ref={tinoFrame}
               key={`tino-${round}`}
               src={`/projects/${projectId}`}
               title="Tino"

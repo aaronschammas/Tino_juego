@@ -2,6 +2,7 @@
 
 const FIRE = ['#fff3b0', '#ffcd75', '#ef7d57', '#b13e53'];
 const PALETTES = {
+  fire: FIRE,
   foam: ['#ffffff', '#e3f2fd', '#cfd8dc'],
   water: ['#73b3f0', '#3b7dd8', '#a8d4ff'],
   bubbles: ['#ffffff', '#b3e5fc', '#e1f5fe'],
@@ -118,6 +119,66 @@ export class Effects {
     }
   }
 
+  /** Humo gris que sube despacio (escombros, hollín). */
+  smoke(at, dt) {
+    const r = this.rng;
+    for (let i = this.count(5, dt); i > 0; i--) {
+      this.spawn({
+        x: at.x + (r() - 0.5) * 10,
+        y: at.y,
+        vx: (r() - 0.5) * 4,
+        vy: -8 - r() * 6,
+        wobble: 3,
+        life: 1.2 + r(),
+        palette: ['#9e9e9e', '#757575', '#5a5a66'],
+        size: 2,
+      });
+    }
+  }
+
+  /** Explosión: bola de fuego, escombros que caen y humo. */
+  explosion(at) {
+    const r = this.rng;
+    for (let i = 0; i < 90; i++) {
+      const angle = r() * Math.PI * 2;
+      const speed = 30 + r() * 60;
+      this.spawn({
+        x: at.x,
+        y: at.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed * 0.6 - 20,
+        gravity: 50,
+        life: 0.5 + r() * 0.6,
+        palette: FIRE,
+        size: r() < 0.5 ? 2 : 1,
+      });
+    }
+    for (let i = 0; i < 30; i++) {
+      const angle = r() * Math.PI * 2;
+      this.spawn({
+        x: at.x,
+        y: at.y,
+        vx: Math.cos(angle) * 40 * r(),
+        vy: -30 - r() * 40,
+        gravity: 120,
+        life: 1 + r() * 0.5,
+        palette: ['#5d4037', '#3c3c46', '#8d8d96'],
+        size: 2,
+      });
+    }
+    for (let i = 0; i < 20; i++) {
+      this.spawn({
+        x: at.x + (r() - 0.5) * 16,
+        y: at.y - r() * 8,
+        vx: (r() - 0.5) * 8,
+        vy: -10 - r() * 10,
+        life: 1.5 + r(),
+        palette: ['#5a5a66', '#3c3c46', '#2a2a33'],
+        size: 3,
+      });
+    }
+  }
+
   /** Explosión de brillitos al resolver un problema. */
   sparkle(at) {
     const r = this.rng;
@@ -166,14 +227,25 @@ export function drawFlies(ctx, at, time, camX, camY, count = 4) {
   }
 }
 
-/** Signo "!" que titila sobre un objeto (teléfono sonando, alarma). */
-export function drawAlert(ctx, at, time, camX, camY) {
-  if (Math.floor(time * 4) % 2) return;
+/** Cucarachas caminando en el piso alrededor de `at`. */
+export function drawCrawlers(ctx, at, time, camX, camY, count = 5) {
+  ctx.fillStyle = '#3e2723';
+  for (let i = 0; i < count; i++) {
+    const angle = time * (0.8 + i * 0.3) + i * 1.7;
+    const x = at.x + Math.cos(angle) * (8 + (i % 3) * 3);
+    const y = at.y + Math.sin(angle) * (3 + (i % 2) * 2);
+    ctx.fillRect(Math.round(x) - camX, Math.round(y) - camY, 2, 1);
+  }
+}
+
+/** Signo "!" que titila sobre un objeto (teléfono sonando, alarma); en rojo cuando algo está por empeorar. */
+export function drawAlert(ctx, at, time, camX, camY, color = '#ffcd75', speed = 4) {
+  if (Math.floor(time * speed) % 2) return;
   const x = Math.round(at.x) - camX;
   const y = Math.round(at.y) - camY;
   ctx.fillStyle = '#1a1c2c';
   ctx.fillRect(x - 2, y - 1, 5, 9);
-  ctx.fillStyle = '#ffcd75';
+  ctx.fillStyle = color;
   ctx.fillRect(x - 1, y, 3, 5);
   ctx.fillRect(x - 1, y + 6, 3, 1);
 }

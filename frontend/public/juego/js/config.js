@@ -22,7 +22,7 @@ export const CONFIG = {
 
   // Cada cuánto el juego le pregunta a Tino qué está pasando.
   POLL_MS: 1000,
-  STATE_URL: '/api/demo/state',
+  TICK_URL: '/api/demo/tick',
 
   BG: '#1a1c2c',
 };

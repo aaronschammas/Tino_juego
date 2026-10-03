@@ -60,8 +60,14 @@ Pedido para poder probar el juego sin credenciales:
   resuelve proyección, orden de dibujado y escala pixel perfect). Se puede migrar si hace falta.
 - **Sin internet**: el juego ya no carga Google Fonts; si "Press Start 2P" no está instalada usa una
   monoespaciada del sistema.
+- **Consecuencias, subtareas y apagado automático** (`POST /demo/tick`): cada problema desatendido acumula
+  peligro (el doble si se trabaja en algo menos urgente) y al llegar a cada etapa crea la consecuencia en Tino
+  (fuego que se extiende como subtarea, explosión, reclamo, cucarachas...). Cuando el personaje termina, el
+  backend apaga el timer con `TimeTrackingService.stopTime`; /feria refresca el Tino del iframe disparándole
+  sus eventos `task:updated`, `time:updated` y `focus`. Escenarios de 5-6 tareas iniciales y hasta 3 consecuencias.
 - **Pendiente para el juego**: estrés, límite de 150 s, puntaje y pantalla final (fases 2 y 4), Mobile y
-  WhatsApp (fase 3), coach (fase 6), sonido.
+  WhatsApp (fase 3), coach (fase 6), sonido. Idea: delegar una tarea a un compañero en Tino y que aparezca otro
+  personaje a hacerla.
 
 ## Cómo levantarlo
 

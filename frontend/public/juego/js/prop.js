@@ -46,6 +46,7 @@ export class TaskObject extends Prop {
     this.task = task;
     this.progress = 0;
     this.solved = false;
+    this.visible = true;
   }
 
   /** Punto (pantalla del mundo) donde nace el efecto del problema: arriba del objeto. */

@@ -1,8 +1,8 @@
 import { CONFIG } from './config.js';
 
 /**
- * Cliente de Tino: pregunta el estado del escenario cada POLL_MS y avisa con `onState`.
- * Entre consultas, `workedSeconds` de la tarea con timer activo se extrapola en el juego.
+ * Cliente de Tino: cada POLL_MS hace un "tick" del escenario (el backend apaga el timer de la tarea
+ * terminada y aplica las consecuencias) y avisa con `onState`, que trae los eventos que pasaron.
  */
 export class TinoClient {
   constructor(scenario, { onState, onError }) {
@@ -26,9 +26,12 @@ export class TinoClient {
     if (this.inFlight) return;
     this.inFlight = true;
     try {
-      const res = await fetch(`${CONFIG.STATE_URL}?scenario=${encodeURIComponent(this.scenario)}`, {
+      const res = await fetch(CONFIG.TICK_URL, {
+        method: 'POST',
         credentials: 'same-origin',
         cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario: this.scenario }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();

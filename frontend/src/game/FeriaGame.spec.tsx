@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import FeriaGame, { pickScenario } from './FeriaGame';
+import FeriaGame, { pickScenario, refreshTino } from './FeriaGame';
 
 const SCENARIOS = [
   { key: 'oficina', name: 'La oficina en llamas', intro: '' },
@@ -59,6 +59,25 @@ describe('FeriaGame', () => {
 
     await waitFor(() => expect(screen.getByTitle('Juego')).toHaveAttribute('src', '/juego/index.html?escenario=casa'));
     expect(screen.getByTitle('Tino')).toHaveAttribute('src', '/projects/p-casa');
+  });
+
+  it('refreshes Tino when the game says something changed', async () => {
+    mockApi();
+    render(<FeriaGame />);
+    const tino = (await screen.findByTitle('Tino')) as HTMLIFrameElement;
+    const heard: string[] = [];
+    for (const name of ['task:updated', 'time:updated', 'focus']) {
+      tino.contentWindow!.addEventListener(name, () => heard.push(name));
+    }
+
+    fireEvent(window, new MessageEvent('message', { data: { type: 'feria:tino-changed' }, origin: window.location.origin }));
+    fireEvent(window, new MessageEvent('message', { data: { type: 'feria:tino-changed' }, origin: 'https://otro.sitio' }));
+
+    expect(heard).toEqual(['task:updated', 'time:updated', 'focus']);
+  });
+
+  it('refreshTino ignores a missing frame', () => {
+    expect(() => refreshTino(null)).not.toThrow();
   });
 
   it('explains when Tino is not reachable', async () => {

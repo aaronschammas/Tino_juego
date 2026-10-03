@@ -5,20 +5,25 @@ Lo sirve el Next.js de Tino como archivo estático y se juega dentro de `/feria`
 
 ## Cómo funciona
 
-El juego **no se controla con el teclado**: lee a Tino. Cada segundo consulta `GET /api/demo/state` y:
+El juego **no se controla con el teclado**: lee a Tino. Cada segundo hace `POST /api/demo/tick` y:
 
 - La tarea con **timer activo** → el personaje camina solo hasta su objeto y trabaja (matafuegos, regadera, escoba...).
-- Con cada segundo de timer el problema se achica; al llegar a los segundos de la tarea queda **resuelto**.
-- Si la tarea se marca **Hecha** en Tino, se resuelve al instante.
+- Con cada segundo de timer el problema se achica; al llegar a los segundos de la tarea queda **resuelto** y
+  el backend **apaga el timer solo**. Falta marcarla **Hecha** en Tino (si se marca antes, se resuelve al instante).
+- **Consecuencias**: cada problema desatendido acumula peligro (el doble si se trabaja en algo menos urgente).
+  Al llegar a cada etapa **se extiende**, **explota** o **empeora**, y aparece una tarea nueva en Tino (por ejemplo
+  la subtarea "Fuego en el archivo"). El panel muestra la cuenta regresiva y el objeto titila en rojo antes.
+- **Subtareas**: los problemas agrupados (por ejemplo "Apagar el incendio") se trabajan en cada subtarea, como en Tino.
 - Si se elige una tarea menos urgente que otra pendiente, el personaje avisa.
+- Cuando cambia algo en Tino (timer apagado, tareas nuevas), el juego avisa a /feria para que refresque el panel de Tino.
 
 ## Escenarios
 
 | Escenario | Acciones (tareas de Tino) |
 |---|---|
-| `oficina` — La oficina en llamas | servidor (fuego), teléfono (suena), planta (mustia) |
-| `casa` — La casa patas arriba | sartén (fuego), basura (moscas), platos (olor), polvo (alfombra) |
-| `jardin` — El jardín abandonado | canilla (inunda), huerta (seca), pasto (alto), cerca (rota) |
+| `oficina` — La oficina en llamas | incendio con subtareas servidor e impresora (→ archivo, escombros, tóner), teléfono (→ reclamo por mail), planta |
+| `casa` — La casa patas arriba | sartén (→ cortinas, hollín), basura (→ cucarachas), ordenar la casa con subtareas platos, polvo y cama |
+| `jardin` — El jardín abandonado | canilla (→ sótano inundado, caño reventado), parrilla (→ pasto seco en llamas), arreglar el jardín con subtareas huerta (→ replantar), pasto y cerca |
 
 Las tareas, prioridades y segundos de trabajo se definen en el backend
 (`backend/src/modules/demo/demo-scenarios.ts`); acá vive cómo se ven (`js/scenarios.js` y `js/art.js`).

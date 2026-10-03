@@ -65,6 +65,12 @@ export class GameMap {
     if (tile) tile.solid = true;
   }
 
+  /** Libera un tile (un objeto que todavía no apareció). */
+  unblock(tx, ty) {
+    const tile = this.get(tx, ty);
+    if (tile) tile.solid = false;
+  }
+
   isWalkable(tx, ty) {
     const tile = this.get(tx, ty);
     return Boolean(tile && !tile.solid && tile.height <= 0.15);

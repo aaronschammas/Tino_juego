@@ -2,7 +2,7 @@ import { decideBehavior, evaluateTasks, mostUrgent } from '../../public/juego/js
 import { ACTIONS as ACTIONS_JS, SCENARIOS as SCENARIOS_JS, legendFor } from '../../public/juego/js/scenarios.js';
 import { GameMap } from '../../public/juego/js/map.js';
 import { facingFor } from '../../public/juego/js/player.js';
-import { taskStatusLabel } from '../../public/juego/js/hud.js';
+import { dangerLabel, panelRows, taskStatusLabel } from '../../public/juego/js/hud.js';
 
 jest.mock('../../public/juego/js/sprites.js', () => ({
   getBlockSprites: () => [{}],
@@ -14,6 +14,8 @@ jest.mock('../../public/juego/js/sprites.js', () => ({
 const SCENARIOS = SCENARIOS_JS as Record<string, (typeof SCENARIOS_JS)['oficina']>;
 const ACTIONS = ACTIONS_JS as Record<string, unknown>;
 
+type Timer = { taskId: string | null; paused: boolean } | null;
+
 type Task = {
   id: string;
   title: string;
@@ -22,6 +24,9 @@ type Task = {
   action: string | null;
   workSeconds: number;
   workedSeconds: number;
+  parentTaskId?: string | null;
+  danger?: number | null;
+  nextStage?: { at: number; kind: string; message: string } | null;
 };
 
 const task = (overrides: Partial<Task>): Task => ({
@@ -65,7 +70,7 @@ describe('evaluateTasks', () => {
 });
 
 describe('decideBehavior', () => {
-  const evaluate = (tasks: Task[], activeTimer: unknown = null) => evaluateTasks({ tasks, activeTimer }, 0);
+  const evaluate = (tasks: Task[], activeTimer: Timer = null) => evaluateTasks({ tasks, activeTimer }, 0);
 
   it('works on the task whose timer is running and says the action line', () => {
     const tasks = evaluate([task({})], { taskId: 't1', paused: false });
@@ -82,6 +87,7 @@ describe('decideBehavior', () => {
     const behavior = decideBehavior(tasks, { taskId: 'low', paused: false }, say);
     expect(behavior.mode).toBe('work');
     expect(behavior.warning).toContain('Apagar el incendio del servidor');
+    expect(behavior.warning).toContain('el doble');
   });
 
   it('waits next to the object while the timer is paused', () => {
@@ -129,9 +135,9 @@ describe('decideBehavior', () => {
 
 describe('scenarios', () => {
   const BACKEND_ACTIONS: Record<string, string[]> = {
-    oficina: ['servidor', 'telefono', 'planta'],
-    casa: ['sarten', 'basura', 'platos', 'polvo'],
-    jardin: ['canilla', 'huerta', 'pasto', 'cerca'],
+    oficina: ['servidor', 'impresora', 'archivo', 'escombros', 'toner', 'telefono', 'mail', 'planta'],
+    casa: ['sarten', 'cortinas', 'hollin', 'basura', 'cucarachas', 'platos', 'polvo', 'cama'],
+    jardin: ['canilla', 'inundacion', 'cano', 'parrilla', 'pastizal', 'huerta', 'semillas', 'pasto', 'cerca'],
   };
 
   it('matches the scenarios and actions of the backend demo module', () => {
@@ -155,6 +161,78 @@ describe('scenarios', () => {
       expect(spot).not.toBeNull();
       expect(map.findPath(spawn, spot)).not.toBeNull();
     }
+  });
+});
+
+describe('consequences', () => {
+  const fire = (overrides: Partial<Task> = {}) =>
+    task({ danger: 20, nextStage: { at: 30, kind: 'spread', message: 'se extiende' }, ...overrides });
+
+  it('extrapolates danger and the countdown to the next stage', () => {
+    const [server] = evaluateTasks({ tasks: [fire()], activeTimer: null }, 4);
+    expect(server.danger).toBe(24);
+    expect(server.remaining).toBeCloseTo(6);
+    expect(server.stageRatio).toBeCloseTo(0.8);
+  });
+
+  it('danger grows twice as fast while working on something less urgent', () => {
+    const plant = task({ id: 'plant', title: 'Regar la planta', priority: 'LOW', action: 'planta' });
+    const [server] = evaluateTasks({ tasks: [fire(), plant], activeTimer: { taskId: 'plant', paused: false } }, 2);
+    expect(server.danger).toBe(24);
+    expect(server.remaining).toBeCloseTo(3);
+  });
+
+  it('danger stops while the problem itself is being worked', () => {
+    const [server] = evaluateTasks({ tasks: [fire()], activeTimer: { taskId: 't1', paused: false } }, 3);
+    expect(server.danger).toBe(20);
+    expect(server.remaining).toBeNull();
+  });
+
+  it('warns to hurry when a consequence is close', () => {
+    const tasks = evaluateTasks({ tasks: [fire({ danger: 25 })], activeTimer: null }, 0);
+    expect(decideBehavior(tasks, null).message).toBe('¡Rápido! "Apagar el incendio del servidor" se extiende en 5 s.');
+  });
+
+  it('a solved parent needs all its subtasks solved', () => {
+    const tasks = evaluateTasks(
+      {
+        tasks: [
+          task({ id: 'p', title: 'Apagar el incendio', action: null }),
+          task({ id: 'a', parentTaskId: 'p', status: 'DONE' }),
+          task({ id: 'b', parentTaskId: 'p', action: 'impresora', workedSeconds: 5 }),
+        ],
+        activeTimer: null,
+      },
+      0,
+    );
+    expect(tasks[0]).toMatchObject({ solved: false, progress: 0.75 });
+  });
+
+  it('tells to use subtasks when the timer is on the parent', () => {
+    const tasks = evaluateTasks({ tasks: [task({ id: 'p', action: null }), task({ id: 'a', parentTaskId: 'p' })], activeTimer: null }, 0);
+    expect(decideBehavior(tasks, { taskId: 'p', paused: false }).message).toContain('subtareas');
+  });
+
+  it('groups subtasks under their parent in the panel and labels the countdown', () => {
+    const tasks = evaluateTasks(
+      {
+        tasks: [
+          task({ id: 'p', title: 'Apagar el incendio', action: null }),
+          fire({ id: 'a', parentTaskId: 'p' }),
+          task({ id: 'phone', title: 'Atender al cliente', action: 'telefono' }),
+          task({ id: 'own', title: 'Tarea creada a mano', action: null }),
+        ],
+        activeTimer: null,
+      },
+      0,
+    );
+    expect(panelRows(tasks).map((row: { kind: string; task: { id: string } }) => `${row.kind}:${row.task.id}`)).toEqual([
+      'group:p',
+      'sub:a',
+      'task:phone',
+    ]);
+    expect(dangerLabel(tasks[1])).toBe('Se extiende en 10 s');
+    expect(dangerLabel(tasks[2])).toBeNull();
   });
 });
 
