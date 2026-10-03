@@ -32,4 +32,11 @@ export class DemoController {
   state(@Query() query: DemoScenarioDto, @CurrentUser() user: DemoUser) {
     return this.demo.getState(query.scenario, user);
   }
+
+  /** Lo llama el juego cada segundo: apaga timers terminados y aplica consecuencias. */
+  @Post('tick')
+  @HttpCode(200)
+  tick(@Body() dto: DemoScenarioDto, @CurrentUser() user: DemoUser) {
+    return this.demo.tick(dto.scenario, user);
+  }
 }

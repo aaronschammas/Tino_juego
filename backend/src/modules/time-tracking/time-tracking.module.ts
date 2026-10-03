@@ -9,5 +9,6 @@ import { ProjectMembersService } from '../projects/project-members.service';
   imports: [ScheduleModule.forRoot()],
   controllers: [TimeTrackingController],
   providers: [TimeTrackingService, TimeTrackingScheduler, ProjectMembersService],
+  exports: [TimeTrackingService],
 })
 export class TimeTrackingModule {}
