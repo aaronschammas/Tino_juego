@@ -45,6 +45,24 @@ Pedido para poder probar el juego sin credenciales:
 - **/feria**: pantalla dividida, Tino real (`/dashboard`) a la izquierda y el prototipo pixel art
   (`frontend/public/juego`) a la derecha. Es la base de la fase 2: ahí entran Phaser, el store y las reglas.
 
+## Juego conectado a Tino
+
+- **Backend** (`src/modules/demo`, solo con `DEMO_MODE=true`): `GET /demo/scenarios`, `POST /demo/reset`
+  (crea el proyecto "Feria · <escenario>" con sus tareas para el usuario demo) y `GET /demo/state` (tareas,
+  segundos trabajados según los timers reales y timer activo). Escenarios en `demo-scenarios.ts`.
+- **/feria** (`src/game/FeriaGame.tsx`): elige escenario (URL o rotación), lo reinicia y muestra el proyecto
+  real de Tino a la izquierda y el juego a la derecha. Botones para cambiar de escenario y reiniciar.
+- **Juego** (`frontend/public/juego`): consulta el estado cada segundo. La tarea con timer activo la hace el
+  personaje solo; con los segundos de timer el problema se resuelve, y al marcarla Hecha también.
+  Avisa si se eligió una tarea menos urgente. Tres escenarios con acciones propias: oficina en llamas,
+  casa patas arriba y jardín abandonado.
+- **Decisión**: se siguió con el motor vanilla del prototipo en vez de Phaser (sin dependencias nuevas y ya
+  resuelve proyección, orden de dibujado y escala pixel perfect). Se puede migrar si hace falta.
+- **Sin internet**: el juego ya no carga Google Fonts; si "Press Start 2P" no está instalada usa una
+  monoespaciada del sistema.
+- **Pendiente para el juego**: estrés, límite de 150 s, puntaje y pantalla final (fases 2 y 4), Mobile y
+  WhatsApp (fase 3), coach (fase 6), sonido.
+
 ## Cómo levantarlo
 
 ```powershell

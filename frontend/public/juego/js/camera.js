@@ -1,24 +1,18 @@
 import { CONFIG } from './config.js';
 import { worldToScreen } from './iso.js';
 
-/** Cámara que sigue a un objetivo con suavizado exponencial (independiente de los FPS). */
+/** Cámara fija: cada escenario es una habitación que entra entera en pantalla. */
 export class Camera {
   constructor() {
     this.x = 0; // centro de la vista, en píxeles de mundo proyectado
     this.y = 0;
   }
 
-  snapTo(pos) {
-    const p = worldToScreen(pos.x, pos.y, pos.z);
+  /** Centra la vista en el medio del mapa (un poco más arriba, por las paredes del fondo). */
+  centerOn(map) {
+    const p = worldToScreen(map.width / 2, map.height / 2, 0);
     this.x = p.x;
-    this.y = p.y - 12;
-  }
-
-  follow(pos, dt) {
-    const p = worldToScreen(pos.x, pos.y, pos.z);
-    const k = 1 - Math.exp(-CONFIG.CAMERA_SMOOTHING * dt);
-    this.x += (p.x - this.x) * k;
-    this.y += (p.y - 12 - this.y) * k; // apunta un poco por encima de los pies
+    this.y = p.y - 8;
   }
 
   /** Esquina superior izquierda en píxeles enteros: evita que el pixel art "tiemble". */

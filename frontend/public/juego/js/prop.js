@@ -1,17 +1,17 @@
 import { worldToScreen } from './iso.js';
+import { getDecorArt, getObjectArt } from './art.js';
+import { SHADOWS } from './sprites.js';
 
-/** Objeto estático del mundo (árboles, rocas, cofres...). */
+/** Objeto decorativo del escenario (árbol, escritorio, sillón). */
 export class Prop {
-  constructor(x, y, z, sprite, anchor, shadow = null) {
+  constructor(x, y, art, shadow = null) {
     this.x = x;
     this.y = y;
-    this.z = z;
-    this.sprite = sprite;
-    this.anchor = anchor;
+    this.z = 0;
+    this.art = art;
     this.shadow = shadow;
   }
 
-  /** Celda en la que se dibuja: justo después del tile que la contiene. */
   drawCell() {
     return { cx: Math.floor(this.x), cy: Math.floor(this.y) };
   }
@@ -25,6 +25,54 @@ export class Prop {
     const sx = Math.round(p.x) - camX;
     const sy = Math.round(p.y) - camY;
     if (this.shadow) ctx.drawImage(this.shadow, sx - (this.shadow.width >> 1), sy - (this.shadow.height >> 1));
-    ctx.drawImage(this.sprite, sx - this.anchor.x, sy - this.anchor.y);
+    ctx.drawImage(this.art.canvas, sx - this.art.anchor.x, sy - this.art.anchor.y);
+  }
+}
+
+export function createDecor(kind, tx, ty, seed) {
+  return new Prop(tx + 0.5, ty + 0.5, getDecorArt(kind, seed), kind === 'arbol' ? SHADOWS[0] : null);
+}
+
+/**
+ * Objeto de una tarea de Tino. Muestra el problema hasta que la tarea se resuelve;
+ * `progress` (0 a 1) sale de los segundos de timer trabajados.
+ */
+export class TaskObject extends Prop {
+  constructor(tx, ty, action, task) {
+    super(tx + 0.5, ty + 0.5, getObjectArt(action.kind, false));
+    this.tx = tx;
+    this.ty = ty;
+    this.action = action;
+    this.task = task;
+    this.progress = 0;
+    this.solved = false;
+  }
+
+  /** Punto (pantalla del mundo) donde nace el efecto del problema: arriba del objeto. */
+  get effectPoint() {
+    const p = worldToScreen(this.x, this.y, 0);
+    return { x: p.x, y: p.y - this.action.fxHeight };
+  }
+
+  /** Punto (pantalla del mundo) al que apunta el personaje al trabajar. */
+  get targetPoint() {
+    const p = worldToScreen(this.x, this.y, 0);
+    return { x: p.x, y: p.y - Math.min(10, this.action.fxHeight) };
+  }
+
+  setSolved(solved) {
+    this.solved = solved;
+    this.art = getObjectArt(this.action.kind, solved);
+  }
+
+  draw(ctx, camX, camY, alpha, time) {
+    const ringing = !this.solved && this.action.problem === 'ring';
+    const jitter = ringing && Math.floor(time * 20) % 2 ? 1 : 0;
+    const p = worldToScreen(this.x, this.y, this.z);
+    ctx.drawImage(
+      this.art.canvas,
+      Math.round(p.x) - camX - this.art.anchor.x + jitter,
+      Math.round(p.y) - camY - this.art.anchor.y,
+    );
   }
 }

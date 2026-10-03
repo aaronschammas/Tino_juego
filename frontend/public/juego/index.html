@@ -3,17 +3,31 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tino 2.5D</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+  <title>Apagá el incendio</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <main id="stage">
-    <!-- El canvas tiene resolución interna fija (320x180); CSS lo escala en múltiplos enteros. -->
-    <canvas id="game" aria-label="Juego isométrico pixel art"></canvas>
-    <div id="hud" aria-live="off"></div>
-    <div id="help">WASD / Flechas: mover · Shift: correr · Espacio: saltar</div>
+  <main id="app">
+    <header id="banner">
+      <h1 id="title">Apagá el incendio con Tino</h1>
+      <p id="intro">Conectando con Tino...</p>
+    </header>
+
+    <!-- El canvas tiene resolución interna fija (320x200); CSS lo escala en múltiplos enteros. -->
+    <div id="stage">
+      <canvas id="game" aria-label="Juego isométrico pixel art"></canvas>
+    </div>
+
+    <section id="panel" aria-label="Problemas para resolver">
+      <p class="hint">Iniciá el timer de una tarea en Tino y el personaje la resuelve.</p>
+      <ul id="tasks"></ul>
+    </section>
+
+    <div id="bubble" hidden>
+      <span id="bubble-text"></span>
+      <small id="bubble-warning" hidden></small>
+    </div>
+    <div id="status" hidden></div>
   </main>
   <script type="module" src="js/main.js"></script>
 </body>

@@ -16,6 +16,11 @@ export const MATERIALS = {
   dirt:    { top: ['#a57d44', '#c49a5a', '#d8b878'].map(rgb), side: ['#7a4a26', '#5e3a1f'].map(rgb) },
   stone:   { top: ['#7a8090', '#9da3b0', '#c2c7d1'].map(rgb), side: ['#6b7080', '#4d5160'].map(rgb) },
   water:   { top: ['#2c5fa8', '#3b7dd8', '#73b3f0'].map(rgb), side: ['#24508f', '#1c3f72'].map(rgb), frames: 4 },
+  carpet:  { top: ['#3d5a80', '#4a6c97', '#5a7fae'].map(rgb), side: ['#33415c', '#28344a'].map(rgb) },
+  wood:    { top: ['#9c6b3c', '#b07d4a', '#c8955f'].map(rgb), side: ['#7a4a26', '#5e3a1f'].map(rgb) },
+  tiles:   { top: ['#b8c4cc', '#dfe6ea', '#f4f7f8'].map(rgb), side: ['#8a969e', '#6f7a82'].map(rgb) },
+  wall:    { top: ['#c9b79c', '#e0d2b8', '#efe6d4'].map(rgb), side: ['#d8c8aa', '#b8a688'].map(rgb) },
+  fence:   { top: ['#7a4a26', '#8d5a32', '#a06a3c'].map(rgb), side: ['#6b4226', '#55331d'].map(rgb) },
 };
 
 const TW = CONFIG.TILE_W;          // 32

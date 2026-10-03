@@ -1,50 +1,20 @@
-import { getBlockSprites, getTreeSprite, TREE_ANCHOR, TREE_SHADOW } from './sprites.js';
-import { Prop } from './prop.js';
+import { getBlockSprites } from './sprites.js';
 import { hash2 } from './pixel.js';
 
-/**
- * Leyenda del mapa: cada carácter define material, altura (en niveles) y si bloquea el paso.
- * Las alturas 1, 2 y 3 son bloques elevados: se sube saltando (Espacio).
- */
-export const LEGEND = {
-  '.': { material: 'grass', height: 0 },
-  ',': { material: 'flowers', height: 0 },
-  ':': { material: 'dirt', height: 0 },
-  '~': { material: 'water', height: -0.25, solid: true },
-  '1': { material: 'grass', height: 1 },
-  '2': { material: 'grass', height: 2 },
-  '3': { material: 'stone', height: 3 },
-  'T': { material: 'grass', height: 0, solid: true, prop: 'tree' },
-  '@': { material: 'grass', height: 0, spawn: true },
-};
-
-// Fila = eje Y del mundo, columna = eje X del mundo.
-export const LEVEL_1 = [
-  '~~~~~~~~~~~~~~~~~~~~',
-  '~~...,....T....,..~~',
-  '~..11.......::...T.~',
-  '~.122..T....::.....~',
-  '~.123.......::..,..~',
-  '~..1....,...::.....~',
-  '~...@...::::::::...~',
-  '~..T....:..~~..:.T.~',
-  '~.,.....:.~~~~.:...~',
-  '~.......:..~~..:...~',
-  '~...11..::::::::...~',
-  '~..1221.....:...,..~',
-  '~..1221..T..:..T...~',
-  '~...11......:......~',
-  '~~..,....T..:....~~~',
-  '~~~~~~~~~~~~~~~~~~~~',
+const NEIGHBORS = [
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+  [0, -1],
 ];
 
+/** Mapa isométrico armado desde filas de texto y una leyenda (ver scenarios.js). */
 export class GameMap {
-  constructor(rows, legend = LEGEND) {
+  constructor(rows, legend) {
     this.height = rows.length;
     this.width = rows[0].length;
     this.tiles = [];
-    this.props = [];
-    this.spawn = null;
+    this.markers = [];
 
     rows.forEach((row, ty) => {
       if (row.length !== this.width) {
@@ -55,21 +25,17 @@ export class GameMap {
         if (!def) throw new Error(`Mapa: carácter desconocido '${ch}' en (${tx}, ${ty})`);
         const seed = Math.floor(hash2(tx, ty, 1234) * 1e6);
         this.tiles.push({
-          tx, ty,
+          tx,
+          ty,
           material: def.material,
           height: def.height,
-          solid: !!def.solid,
+          solid: Boolean(def.solid),
           seed,
           sprites: getBlockSprites(def.material, def.height, seed % 4),
         });
-        if (def.prop === 'tree') {
-          this.props.push(new Prop(tx + 0.5, ty + 0.5, def.height, getTreeSprite(seed % 3), TREE_ANCHOR, TREE_SHADOW));
-        }
-        if (def.spawn) this.spawn = { x: tx + 0.5, y: ty + 0.5, z: def.height };
+        if (def.marker) this.markers.push({ ...def, tx, ty, seed });
       });
     });
-
-    if (!this.spawn) throw new Error("Mapa: falta el punto de inicio '@'");
 
     // Orden de dibujado isométrico (painter's algorithm): por diagonales x+y, de atrás hacia adelante.
     this.drawOrder = [];
@@ -89,27 +55,55 @@ export class GameMap {
     return this.tiles[this.index(tx, ty)];
   }
 
-  /** Esquinas de la huella cuadrada (radio r) de una entidad en (x, y). */
-  *footprint(x, y, r) {
-    for (const cx of [x - r, x + r]) {
-      for (const cy of [y - r, y + r]) yield this.get(Math.floor(cx), Math.floor(cy));
-    }
+  marker(kind) {
+    return this.markers.find((m) => m.marker === kind);
   }
 
-  /** ¿Puede una entidad a altura z ocupar (x, y)? Bloquean los tiles sólidos y los más altos que z + stepUp. */
-  canOccupy(x, y, z, r, stepUp) {
-    for (const tile of this.footprint(x, y, r)) {
-      if (!tile || tile.solid || tile.height > z + stepUp) return false;
-    }
-    return true;
+  /** Marca un tile como ocupado por un objeto (no se puede pisar). */
+  block(tx, ty) {
+    const tile = this.get(tx, ty);
+    if (tile) tile.solid = true;
   }
 
-  /** Altura del suelo bajo la huella: el tile más alto que pisa (permite pararse en bordes). */
-  groundAt(x, y, r) {
-    let ground = -Infinity;
-    for (const tile of this.footprint(x, y, r)) {
-      if (tile && !tile.solid) ground = Math.max(ground, tile.height);
+  isWalkable(tx, ty) {
+    const tile = this.get(tx, ty);
+    return Boolean(tile && !tile.solid && tile.height <= 0.15);
+  }
+
+  /** Tile libre al lado de un objeto para pararse a trabajar; prefiere los de adelante (se ve al personaje). */
+  workSpot(tx, ty) {
+    for (const [dx, dy] of NEIGHBORS) {
+      if (this.isWalkable(tx + dx, ty + dy)) return { tx: tx + dx, ty: ty + dy };
     }
-    return ground === -Infinity ? 0 : ground;
+    return null;
+  }
+
+  /** Camino más corto (BFS, 4 direcciones) entre dos tiles caminables, como lista de tiles sin el inicial. */
+  findPath(from, to) {
+    const start = this.index(from.tx, from.ty);
+    const goal = this.index(to.tx, to.ty);
+    if (start === goal) return [];
+    const previous = new Map([[start, -1]]);
+    const queue = [start];
+    while (queue.length) {
+      const current = queue.shift();
+      if (current === goal) break;
+      const cx = current % this.width;
+      const cy = Math.floor(current / this.width);
+      for (const [dx, dy] of NEIGHBORS) {
+        const nx = cx + dx;
+        const ny = cy + dy;
+        const next = this.index(nx, ny);
+        if (!this.isWalkable(nx, ny) || previous.has(next)) continue;
+        previous.set(next, current);
+        queue.push(next);
+      }
+    }
+    if (!previous.has(goal)) return null;
+    const path = [];
+    for (let node = goal; node !== start; node = previous.get(node)) {
+      path.unshift({ tx: node % this.width, ty: Math.floor(node / this.width) });
+    }
+    return path;
   }
 }

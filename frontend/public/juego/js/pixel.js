@@ -87,6 +87,27 @@ export function spriteFromStrings(rows, palette) {
   return buf.toCanvas();
 }
 
+/**
+ * Sprite dibujado con rectángulos: `draw(px)` recibe px(x, y, w, h, color).
+ * Si se pasa `outlineHex`, se agrega un contorno de 1 px alrededor de todo lo dibujado.
+ */
+export function paintSprite(w, h, draw, outlineHex = '#1a1c2c') {
+  const pad = outlineHex ? 1 : 0;
+  const canvas = makeCanvas(w + pad * 2, h + pad * 2);
+  const ctx = canvas.getContext('2d');
+  const px = (x, y, rw = 1, rh = 1, color = '#ff00ff') => {
+    ctx.fillStyle = color;
+    ctx.fillRect(Math.round(x) + pad, Math.round(y) + pad, rw, rh);
+  };
+  draw(px);
+  if (!outlineHex) return canvas;
+
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const buf = new PixelBuffer(canvas.width, canvas.height);
+  buf.data.set(image.data);
+  return buf.outline(hexToRgb(outlineHex)).toCanvas();
+}
+
 export function flipH(src) {
   const c = makeCanvas(src.width, src.height);
   const ctx = c.getContext('2d');

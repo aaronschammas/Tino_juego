@@ -2,7 +2,7 @@
 export const CONFIG = {
   // Resolución interna (en píxeles de arte). El canvas se escala en enteros sobre esto.
   VIEW_W: 320,
-  VIEW_H: 180,
+  VIEW_H: 200,
 
   // Proyección isométrica 2:1. Un tile mide 32x16 px en pantalla y cada nivel de altura sube 8 px.
   TILE_W: 32,
@@ -13,27 +13,16 @@ export const CONFIG = {
 
   // Game loop de paso fijo.
   FIXED_DT: 1 / 60,
-  MAX_FRAME_DT: 0.25, // evita la "espiral de la muerte" tras un lag o pestaña oculta
+  MAX_FRAME_DT: 0.25,
 
   PLAYER: {
-    speed: 3.2,          // tiles por segundo
-    runMultiplier: 1.6,
-    radius: 0.22,        // radio de la huella de colisión, en tiles
-    jumpVelocity: 8.6,   // niveles por segundo (alcanza ~1.3 niveles de altura)
-    gravity: 28,         // niveles por segundo²
-    stepUp: 0.15,        // desnivel que se sube sin saltar
+    speed: 2.6,   // tiles por segundo
+    radius: 0.22, // radio de la huella, en tiles
   },
 
-  CAMERA_SMOOTHING: 8, // mayor = sigue más rápido
-
-  KEYS: {
-    up: ['KeyW', 'ArrowUp'],
-    down: ['KeyS', 'ArrowDown'],
-    left: ['KeyA', 'ArrowLeft'],
-    right: ['KeyD', 'ArrowRight'],
-    jump: ['Space'],
-    run: ['ShiftLeft', 'ShiftRight'],
-  },
+  // Cada cuánto el juego le pregunta a Tino qué está pasando.
+  POLL_MS: 1000,
+  STATE_URL: '/api/demo/state',
 
   BG: '#1a1c2c',
 };

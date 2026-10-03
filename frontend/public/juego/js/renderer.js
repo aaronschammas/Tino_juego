@@ -4,28 +4,41 @@ import { worldToScreen } from './iso.js';
 const { VIEW_W, VIEW_H, TILE_W } = CONFIG;
 
 export class Renderer {
-  constructor(canvas) {
+  constructor(canvas, container = canvas.parentElement) {
     this.canvas = canvas;
+    this.container = container;
     canvas.width = VIEW_W;
     canvas.height = VIEW_H;
     this.ctx = canvas.getContext('2d', { alpha: false });
     this.ctx.imageSmoothingEnabled = false; // nunca interpolar píxeles al dibujar sprites
+    this.scale = 1;
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
   /**
    * Escala entera en píxeles FÍSICOS (tiene en cuenta devicePixelRatio, p. ej. 125% en Windows),
-   * así cada píxel de arte ocupa exactamente N×N píxeles de pantalla.
+   * así cada píxel de arte ocupa exactamente N×N píxeles de pantalla. Se ajusta al contenedor.
    */
   resize() {
     const dpr = window.devicePixelRatio || 1;
-    const scale = Math.max(1, Math.floor(Math.min((innerWidth * dpr) / VIEW_W, (innerHeight * dpr) / VIEW_H)));
-    this.canvas.style.width = `${(VIEW_W * scale) / dpr}px`;
-    this.canvas.style.height = `${(VIEW_H * scale) / dpr}px`;
+    const box = this.container.getBoundingClientRect();
+    const scale = Math.max(1, Math.floor(Math.min((box.width * dpr) / VIEW_W, (box.height * dpr) / VIEW_H)));
+    this.scale = scale / dpr;
+    this.canvas.style.width = `${VIEW_W * this.scale}px`;
+    this.canvas.style.height = `${VIEW_H * this.scale}px`;
   }
 
-  render(map, entities, camera, time, alpha) {
+  /** Convierte un punto de pantalla del mundo a coordenadas CSS de la página (para globos HTML). */
+  toPage(point, camera) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: rect.left + (point.x - camera.left) * this.scale,
+      y: rect.top + (point.y - camera.top) * this.scale,
+    };
+  }
+
+  render(map, entities, camera, time, alpha, drawOverlay) {
     const ctx = this.ctx;
     ctx.fillStyle = CONFIG.BG;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -53,6 +66,8 @@ export class Renderer {
       if (list.length > 1) list.sort((a, b) => a.sortKey - b.sortKey);
       for (const e of list) e.draw(ctx, camX, camY, alpha, time);
     }
+
+    if (drawOverlay) drawOverlay(ctx, camX, camY);
   }
 
   drawTile(tile, camX, camY, time) {

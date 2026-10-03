@@ -1,7 +1,15 @@
 :root {
   --bg: #1a1c2c;
+  --panel: #252840;
   --text: #f4f4f4;
   --muted: #94b0c2;
+  --critical: #e53935;
+  --high: #ef7d57;
+  --medium: #ffcd75;
+  --low: #73b3f0;
+  --ok: #38b764;
+  /* Sin internet en la feria: si "Press Start 2P" no está instalada, cae a una monoespaciada del sistema. */
+  --pixel-font: 'Press Start 2P', 'Consolas', 'Courier New', monospace;
 }
 
 * { box-sizing: border-box; }
@@ -12,13 +20,38 @@ html, body {
   background: var(--bg);
   color: var(--text);
   overflow: hidden;
-  font-family: 'Press Start 2P', ui-monospace, monospace;
+  font-family: var(--pixel-font);
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#banner {
+  padding: 12px 16px 4px;
+  text-align: center;
+}
+
+#banner h1 {
+  margin: 0;
+  font-size: clamp(14px, 2.4vw, 22px);
+  color: var(--medium);
+  text-shadow: 2px 2px 0 #000;
+}
+
+#banner p {
+  margin: 6px auto 0;
+  max-width: 60ch;
+  font-size: clamp(10px, 1.4vw, 13px);
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 #stage {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
 }
@@ -26,21 +59,120 @@ html, body {
 #game {
   display: block;
   background: var(--bg);
-  /* Escalado sin suavizado: cada píxel del juego se vuelve un bloque nítido.
-     El orden importa: el último valor soportado gana (Firefox usa crisp-edges). */
+  /* Escalado sin suavizado: el último valor soportado gana (Firefox usa crisp-edges). */
   image-rendering: crisp-edges;
   image-rendering: pixelated;
 }
 
-#hud, #help {
-  position: absolute;
-  left: 12px;
-  font-size: 10px;
-  line-height: 1.6;
-  text-shadow: 2px 2px 0 #000;
-  pointer-events: none;
-  white-space: pre;
+#panel {
+  padding: 8px 16px 16px;
+  background: var(--panel);
+  border-top: 4px solid #000;
 }
 
-#hud { top: 12px; }
-#help { bottom: 12px; color: var(--muted); white-space: normal; right: 12px; }
+.hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+#tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.task {
+  display: grid;
+  grid-template-columns: auto 1fr 120px;
+  grid-template-areas: 'chip title bar' 'chip state state';
+  align-items: center;
+  gap: 2px 10px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 2px solid #000;
+  font-size: 12px;
+}
+
+.task.active { border-color: var(--medium); }
+.task.solved { opacity: 0.75; }
+
+.chip {
+  grid-area: chip;
+  padding: 4px 6px;
+  font-size: 9px;
+  color: #000;
+  text-transform: uppercase;
+}
+
+.priority-critical .chip { background: var(--critical); color: #fff; }
+.priority-high .chip { background: var(--high); }
+.priority-medium .chip { background: var(--medium); }
+.priority-low .chip { background: var(--low); }
+
+.task-title { grid-area: title; }
+.task-state { grid-area: state; font-size: 10px; color: var(--muted); }
+.task.solved .task-state { color: var(--ok); }
+
+.bar {
+  grid-area: bar;
+  height: 10px;
+  background: #000;
+  border: 2px solid #000;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--high);
+  transition: width 0.25s linear;
+}
+
+.task.solved .fill { background: var(--ok); }
+
+#bubble {
+  position: fixed;
+  left: 0;
+  top: 0;
+  max-width: 260px;
+  padding: 8px 10px;
+  background: #fff;
+  color: #000;
+  border: 3px solid #000;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+  margin-top: -10px;
+}
+
+#bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top-color: #000;
+}
+
+#bubble-warning {
+  display: block;
+  margin-top: 4px;
+  color: var(--critical);
+  font-size: 10px;
+}
+
+#bubble[hidden], #bubble-warning[hidden], #status[hidden] { display: none; }
+
+#status {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  background: var(--critical);
+  font-size: 10px;
+}
