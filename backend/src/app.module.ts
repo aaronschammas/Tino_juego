@@ -17,6 +17,7 @@ import { ActiveOrganizationModule } from './common/active-organization/active-or
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
+import { DemoModule } from './modules/demo/demo.module';
 
 @Module({
   controllers: [HealthController],
@@ -37,6 +38,7 @@ import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
     OrganizationsModule,
     AssistantModule,
     WhatsAppModule,
+    ...(process.env.DEMO_MODE === 'true' ? [DemoModule] : []),
   ],
   providers: [
     {
