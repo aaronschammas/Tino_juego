@@ -1,35 +1,41 @@
-# Tino 2.5D — base de juego isométrico pixel art
+# Juego "Apagá el incendio con Tino"
 
 Vanilla JavaScript + `<canvas>`, sin dependencias ni build. Todo el arte se genera por código.
+Lo sirve el Next.js de Tino como archivo estático y se juega dentro de `/feria`, al lado de Tino real.
 
-## Ejecutar
+## Cómo funciona
 
-Lo sirve el Next.js de Tino como archivo estático: con `.\feria.ps1` levantado, abrir
-http://localhost:3000/juego/index.html (o "Empezar a jugar" en la página de inicio, que lo muestra
-al lado de Tino en /feria). **WASD / Flechas** mover · **Shift** correr · **Espacio** saltar.
+El juego **no se controla con el teclado**: lee a Tino. Cada segundo consulta `GET /api/demo/state` y:
 
-Es el prototipo previo a la fase 2 del plan, donde el juego pasa a Phaser.
+- La tarea con **timer activo** → el personaje camina solo hasta su objeto y trabaja (matafuegos, regadera, escoba...).
+- Con cada segundo de timer el problema se achica; al llegar a los segundos de la tarea queda **resuelto**.
+- Si la tarea se marca **Hecha** en Tino, se resuelve al instante.
+- Si se elige una tarea menos urgente que otra pendiente, el personaje avisa.
+
+## Escenarios
+
+| Escenario | Acciones (tareas de Tino) |
+|---|---|
+| `oficina` — La oficina en llamas | servidor (fuego), teléfono (suena), planta (mustia) |
+| `casa` — La casa patas arriba | sartén (fuego), basura (moscas), platos (olor), polvo (alfombra) |
+| `jardin` — El jardín abandonado | canilla (inunda), huerta (seca), pasto (alto), cerca (rota) |
+
+Las tareas, prioridades y segundos de trabajo se definen en el backend
+(`backend/src/modules/demo/demo-scenarios.ts`); acá vive cómo se ven (`js/scenarios.js` y `js/art.js`).
 
 ## Estructura
 
 | Archivo | Responsabilidad |
 |---|---|
-| `js/main.js` | Inicialización y **game loop** (update a paso fijo 60 Hz + render interpolado) |
-| `js/config.js` | Resolución interna, tamaño de tiles, física, teclas |
-| `js/iso.js` | Proyección mundo ⇄ pantalla (`worldToScreen`, `screenToWorld`) |
-| `js/map.js` | Mapa en texto (`LEVEL_1`), leyenda, colisiones y orden de dibujado |
-| `js/player.js` | Movimiento X/Y, salto y gravedad en Z, animación |
-| `js/renderer.js` | Escalado entero, painter's algorithm, culling |
-| `js/camera.js` | Seguimiento suave con posición entera (sin temblor) |
-| `js/sprites.js` / `js/pixel.js` | Generación procedural de bloques, árboles, sombras y personaje |
-| `js/prop.js` | Objetos estáticos (árboles) |
+| `js/main.js` | Arma el escenario y el game loop (paso fijo 60 Hz + render interpolado) |
+| `js/rules.js` | Reglas sin DOM: progreso de cada tarea y qué hace el personaje (testeadas en `src/game/juego.spec.ts`) |
+| `js/tino.js` | Consulta el estado de Tino |
+| `js/scenarios.js` | Mapas de cada escenario y qué hace cada acción |
+| `js/art.js` / `js/sprites.js` / `js/pixel.js` | Pixel art procedural: objetos, bloques, personaje |
+| `js/effects.js` | Partículas: fuego, humo, espuma, agua, polvo, moscas, brillitos |
+| `js/player.js` | El personaje: camino, dirección y animaciones |
+| `js/map.js` | Mapa, orden de dibujado y búsqueda de camino |
+| `js/renderer.js` / `js/camera.js` / `js/iso.js` | Dibujo isométrico con escala entera sin suavizado |
+| `js/hud.js` | Panel de tareas y globo de diálogo en HTML |
 
-## Ejes del mundo
-
-- **X**: diagonal abajo-derecha en pantalla · **Y**: diagonal abajo-izquierda · **Z**: altura (niveles).
-- El input es relativo a la pantalla y se rota 45° al espacio isométrico (`player.js`).
-
-## Editar el mapa
-
-Cambiá las filas de `LEVEL_1` en `js/map.js` (todas del mismo largo):
-`.` pasto · `,` flores · `:` camino · `~` agua · `1` `2` bloques de pasto · `3` piedra · `T` árbol · `@` inicio.
+Para probarlo suelto: http://localhost:3000/juego/index.html?escenario=casa (con `.\feria.ps1` levantado).
