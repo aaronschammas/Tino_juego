@@ -14,16 +14,29 @@ const PALETTES = {
   sparkle: ['#ffffff', '#fff59d', '#ffcd75', '#a7f070'],
 };
 
-/** Sistema de partículas: cada una vive unos instantes, se mueve con velocidad y gravedad y se desvanece. */
+export const MAX_PARTICLES = 900;
+
+/**
+ * Sistema de partículas: cada una vive unos instantes, se mueve con velocidad y gravedad y se desvanece.
+ * Cada partícula recuerda la celda del mapa de donde salió (`cell`, -1 si ninguna) para dibujarse en su profundidad.
+ */
 export class Effects {
   constructor(rng = Math.random) {
     this.particles = [];
     this.rng = rng;
+    this.recycle = 0;
+    this.cells = new Map();
   }
 
-  spawn(p) {
-    if (this.particles.length > 600) return;
-    this.particles.push({ size: 1, gravity: 0, wobble: 0, age: 0, ...p });
+  /** Agrega una partícula; si se llegó al tope reemplaza una vieja, así una explosión nunca se pierde. */
+  spawn(p, cell = -1) {
+    const particle = { size: 1, gravity: 0, wobble: 0, age: 0, ...p, cell };
+    if (this.particles.length < MAX_PARTICLES) {
+      this.particles.push(particle);
+      return;
+    }
+    this.particles[this.recycle] = particle;
+    this.recycle = (this.recycle + 1) % MAX_PARTICLES;
   }
 
   /** Cantidad de partículas a emitir en este paso para una tasa por segundo (resto fraccional al azar). */
@@ -44,7 +57,7 @@ export class Effects {
         life: 0.35 + r() * 0.45,
         palette: FIRE,
         size: r() < 0.3 ? 2 : 1,
-      });
+      }, at.cell);
     }
     for (let i = this.count(6 * intensity, dt); i > 0; i--) {
       this.spawn({
@@ -55,7 +68,7 @@ export class Effects {
         life: 1 + r(),
         palette: ['#5a5a66', '#3c3c46', '#2a2a33'],
         size: 2,
-      });
+      }, at.cell);
     }
   }
 
@@ -73,7 +86,7 @@ export class Effects {
         gravity,
         life: time * (0.8 + r() * 0.4),
         palette: PALETTES[kind] ?? PALETTES.foam,
-      });
+      }, to.cell);
     }
   }
 
@@ -91,7 +104,7 @@ export class Effects {
         life: 0.4 + r() * 0.5,
         palette: PALETTES[kind] ?? PALETTES.dust,
         size: kind === 'dust' ? 2 : 1,
-      });
+      }, at.cell);
     }
   }
 
@@ -99,7 +112,7 @@ export class Effects {
   stink(at, dt) {
     const r = this.rng;
     for (let i = this.count(4, dt); i > 0; i--) {
-      this.spawn({ x: at.x + (r() - 0.5) * 10, y: at.y, vx: 0, vy: -10, wobble: 6, life: 1.4, palette: PALETTES.stink });
+      this.spawn({ x: at.x + (r() - 0.5) * 10, y: at.y, vx: 0, vy: -10, wobble: 6, life: 1.4, palette: PALETTES.stink }, at.cell);
     }
   }
 
@@ -115,7 +128,7 @@ export class Effects {
         gravity: 90,
         life: 0.7,
         palette: PALETTES.water,
-      });
+      }, at.cell);
     }
   }
 
@@ -132,7 +145,16 @@ export class Effects {
         life: 1.2 + r(),
         palette: ['#9e9e9e', '#757575', '#5a5a66'],
         size: 2,
-      });
+      }, at.cell);
+    }
+  }
+
+  /** Gotitas de transpiración que saltan de la cabeza (estrés alto). */
+  sweat(at, dt) {
+    const r = this.rng;
+    for (let i = this.count(5, dt); i > 0; i--) {
+      const side = r() < 0.5 ? -1 : 1;
+      this.spawn({ x: at.x + side * 4, y: at.y + 3, vx: side * (8 + r() * 6), vy: -14 - r() * 6, gravity: 70, life: 0.5, palette: PALETTES.water }, at.cell);
     }
   }
 
@@ -151,7 +173,7 @@ export class Effects {
         life: 0.5 + r() * 0.6,
         palette: FIRE,
         size: r() < 0.5 ? 2 : 1,
-      });
+      }, at.cell);
     }
     for (let i = 0; i < 30; i++) {
       const angle = r() * Math.PI * 2;
@@ -164,7 +186,7 @@ export class Effects {
         life: 1 + r() * 0.5,
         palette: ['#5d4037', '#3c3c46', '#8d8d96'],
         size: 2,
-      });
+      }, at.cell);
     }
     for (let i = 0; i < 20; i++) {
       this.spawn({
@@ -175,7 +197,7 @@ export class Effects {
         life: 1.5 + r(),
         palette: ['#5a5a66', '#3c3c46', '#2a2a33'],
         size: 3,
-      });
+      }, at.cell);
     }
   }
 
@@ -194,22 +216,38 @@ export class Effects {
         life: 0.8 + r() * 0.4,
         palette: PALETTES.sparkle,
         size: r() < 0.4 ? 2 : 1,
-      });
+      }, at.cell);
     }
   }
 
+  /** Mueve las partículas y saca las que se apagaron sin crear arreglos nuevos. */
   update(dt) {
-    for (const p of this.particles) {
+    const list = this.particles;
+    let alive = 0;
+    for (const p of list) {
       p.age += dt;
       p.vy += p.gravity * dt;
       p.x += (p.vx + (p.wobble ? Math.sin(p.age * 8) * p.wobble : 0)) * dt;
       p.y += p.vy * dt;
+      if (p.age < p.life) list[alive++] = p;
     }
-    this.particles = this.particles.filter((p) => p.age < p.life);
+    list.length = alive;
+    if (this.recycle >= alive) this.recycle = 0;
   }
 
-  draw(ctx, camX, camY) {
+  /** Partículas agrupadas por la celda de donde salieron, para dibujarlas junto con esa celda. */
+  byCell() {
+    for (const list of this.cells.values()) list.length = 0;
     for (const p of this.particles) {
+      let list = this.cells.get(p.cell);
+      if (!list) this.cells.set(p.cell, (list = []));
+      list.push(p);
+    }
+    return this.cells;
+  }
+
+  draw(ctx, camX, camY, list = this.particles) {
+    for (const p of list) {
       const t = p.age / p.life;
       ctx.fillStyle = p.palette[Math.min(p.palette.length - 1, Math.floor(t * p.palette.length))];
       ctx.fillRect(Math.round(p.x) - camX, Math.round(p.y) - camY, p.size, p.size);

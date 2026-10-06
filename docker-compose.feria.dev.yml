@@ -1,0 +1,8 @@
+# Modo desarrollo del frontend (recarga en vivo, más lento). Se usa junto al compose de la feria:
+#   docker compose -f docker-compose.feria.yml -f docker-compose.feria.dev.yml up -d   (o .\feria.ps1 dev)
+services:
+  frontend:
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    command: npm run dev

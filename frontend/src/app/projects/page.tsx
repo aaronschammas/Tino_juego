@@ -15,6 +15,7 @@ import NoticeBanner from '@/components/ui/NoticeBanner';
 import { Project, CreateProjectDto } from '@/types/project';
 import { translateErrorMessage } from '@/lib/errorMessages';
 import { cn } from '@/lib/cn';
+import { firstLastGame, readLastGameProject } from '@/lib/feria';
 import { Search, Plus, Folder, Activity, Pause, CheckCircle2, ListTodo, Users } from 'lucide-react';
 
 type FilterType = 'all' | 'active' | 'paused';
@@ -89,6 +90,9 @@ export default function ProjectsPage() {
     : user?.organizationPlan?.name;
   const maxProjects = user?.organizationPlan?.maxProjects;
   const projectLimitReached = maxProjects !== null && projects.length >= (maxProjects ?? 2);
+
+  const [lastGameProjectId, setLastGameProjectId] = useState<string | null>(null);
+  useEffect(() => setLastGameProjectId(readLastGameProject()), []);
 
   const filteredProjects = useMemo(() => {
     let filtered = projects;
@@ -341,10 +345,11 @@ export default function ProjectsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 pb-20">
-              {filteredProjects.map((project) => (
+              {firstLastGame(filteredProjects, lastGameProjectId).map((project) => (
                 <ProjectCard
                   key={project.id}
                   project={project}
+                  isLastGame={project.id === lastGameProjectId}
                   onEdit={canManageThisProject(project) ? (p) => setEditingProject(p) : undefined}
                   onDelete={canManageThisProject(project) ? handleDelete : undefined}
                 />

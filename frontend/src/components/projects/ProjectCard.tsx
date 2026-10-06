@@ -9,6 +9,8 @@ interface ProjectCardProps {
   project: Project;
   onEdit?: (project: Project) => void;
   onDelete?: (id: string) => void;
+  /** Proyecto de la última partida del juego de la feria: se resalta para que el visitante explore sus métricas. */
+  isLastGame?: boolean;
 }
 
 const priorityColors = {
@@ -25,14 +27,24 @@ const priorityLabels = {
   CRITICAL: 'Critica',
 };
 
-export default function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
+export default function ProjectCard({ project, onEdit, onDelete, isLastGame = false }: ProjectCardProps) {
   const tasks = project.tasks || [];
   const totalTasks = project.taskStats?.total ?? tasks.length;
   const completedTasks = project.taskStats?.completed ?? tasks.filter((task) => task.status === 'DONE').length;
   const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
-    <Card className="group relative border-slate-100 shadow-sm hover:shadow-md transition-all p-7 rounded-[32px] bg-white overflow-hidden">
+    <Card
+      className={cn(
+        'group relative border-slate-100 shadow-sm hover:shadow-md transition-all p-7 rounded-[32px] bg-white overflow-hidden',
+        isLastGame && 'ring-4 ring-orange-400',
+      )}
+    >
+      {isLastGame ? (
+        <span className="mb-3 inline-flex rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+          Tu última partida · mirá sus métricas
+        </span>
+      ) : null}
       <Link href={`/projects/${project.id}`} className="block">
         <div className="flex justify-between items-start mb-4">
           <div className="space-y-1 pr-4">

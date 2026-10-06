@@ -19,6 +19,7 @@ export interface TimeEntry {
     id: string;
     title: string;
     status?: TaskStatus;
+    estimatedHours?: number | null;
   } | null;
 }
 

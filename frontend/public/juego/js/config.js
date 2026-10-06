@@ -11,6 +11,9 @@ export const CONFIG = {
   // Altura de la "base" del diorama: los bloques se dibujan desde aquí hasta su altura.
   WORLD_BASE_Z: -1,
 
+  // Escala entera solo si llena al menos esta fracción del espacio; si no, se escala a lo que entre.
+  MIN_INTEGER_FILL: 0.9,
+
   // Game loop de paso fijo.
   FIXED_DT: 1 / 60,
   MAX_FRAME_DT: 0.25,
@@ -23,6 +26,8 @@ export const CONFIG = {
   // Cada cuánto el juego le pregunta a Tino qué está pasando.
   POLL_MS: 1000,
   TICK_URL: '/api/demo/tick',
+  // Cuánto se ve el resultado en el juego antes de pasar a las estadísticas de /feria.
+  FINAL_DELAY_MS: 4000,
 
   BG: '#1a1c2c',
 };

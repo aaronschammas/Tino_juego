@@ -514,4 +514,26 @@ describe('TaskItem Component', () => {
       expect(article).toBeInTheDocument();
     });
   });
+
+  describe('Status menu', () => {
+    it('keeps a single status menu open and closes it after choosing an option', () => {
+      const { container } = render(
+        <>
+          <TaskItem task={mockTask} onEdit={mockOnEdit} onStatusChange={mockOnStatusChange} />
+          <TaskItem task={{ ...mockTask, id: 'task-2', title: 'Otra tarea' }} onEdit={mockOnEdit} onStatusChange={mockOnStatusChange} />
+        </>,
+      );
+      const [first, second] = Array.from(container.querySelectorAll<HTMLDetailsElement>('details[data-status-menu]'));
+
+      first.open = true;
+      fireEvent(first, new Event('toggle'));
+      second.open = true;
+      fireEvent(second, new Event('toggle'));
+      expect(first.open).toBe(false);
+      expect(second.open).toBe(true);
+
+      fireEvent.click(second.querySelector('button')!);
+      expect(second.open).toBe(false);
+    });
+  });
 });

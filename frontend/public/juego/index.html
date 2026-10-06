@@ -11,15 +11,37 @@
     <header id="banner">
       <h1 id="title">Apagá el incendio con Tino</h1>
       <p id="intro">Conectando con Tino...</p>
+      <div id="meters">
+        <span id="clock" title="Tiempo de la partida">2:30</span>
+        <span id="stress" title="Estrés"><span class="label">Estrés</span><span class="meter"><span class="fill"></span></span></span>
+        <span id="points">0 pts</span>
+      </div>
     </header>
 
-    <!-- El canvas tiene resolución interna fija (320x200); CSS lo escala en múltiplos enteros. -->
+    <!-- El canvas tiene resolución interna fija (320x200); se escala para llenar este espacio. -->
     <div id="stage">
       <canvas id="game" aria-label="Juego isométrico pixel art"></canvas>
+      <div id="toast" role="status" aria-live="assertive" hidden></div>
+      <div id="final" role="dialog" aria-live="polite" hidden>
+        <h2 id="final-title"></h2>
+        <dl id="final-kpis"></dl>
+      </div>
     </div>
 
+    <aside id="coach" aria-live="polite" hidden>
+      <span id="coach-arrow" aria-hidden="true">◀ Tino</span>
+      <div class="coach-body">
+        <small id="coach-step"></small>
+        <strong id="coach-title"></strong>
+        <p id="coach-text"></p>
+      </div>
+      <div class="coach-actions">
+        <button id="coach-next" type="button">Siguiente ▸</button>
+        <button id="coach-hide" type="button">Entendido</button>
+      </div>
+    </aside>
+
     <section id="panel" aria-label="Problemas para resolver">
-      <p class="hint">Iniciá el timer de una tarea en Tino y el personaje la resuelve.</p>
       <ul id="tasks"></ul>
     </section>
 
@@ -28,7 +50,6 @@
       <small id="bubble-warning" hidden></small>
     </div>
     <div id="status" hidden></div>
-    <div id="toast" role="status" aria-live="assertive" hidden></div>
   </main>
   <script type="module" src="js/main.js"></script>
 </body>

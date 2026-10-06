@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "juego-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["web/serve.mjs"],
+      "port": 8080
+    }
+  ]
+}

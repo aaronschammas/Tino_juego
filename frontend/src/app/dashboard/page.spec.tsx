@@ -304,4 +304,11 @@ describe('Dashboard page v2', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ir a proyectos' })).toBeInTheDocument();
   });
+
+  it('opens filtered by the project in the URL from the first request (end screen of the fair)', () => {
+    window.history.pushState({}, '', '/dashboard?projectId=project-1');
+    render(<BIDashboardPage />);
+    expect((useDashboardV2 as jest.Mock).mock.calls[0][0]).toMatchObject({ initialFilters: { projectId: 'project-1' } });
+    window.history.pushState({}, '', '/');
+  });
 });

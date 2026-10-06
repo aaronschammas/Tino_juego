@@ -65,16 +65,77 @@ Pedido para poder probar el juego sin credenciales:
   (fuego que se extiende como subtarea, explosión, reclamo, cucarachas...). Cuando el personaje termina, el
   backend apaga el timer con `TimeTrackingService.stopTime`; /feria refresca el Tino del iframe disparándole
   sus eventos `task:updated`, `time:updated` y `focus`. Escenarios de 5-6 tareas iniciales y hasta 3 consecuencias.
-- **Pendiente para el juego**: estrés, límite de 150 s, puntaje y pantalla final (fases 2 y 4), Mobile y
-  WhatsApp (fase 3), coach (fase 6), sonido. Idea: delegar una tarea a un compañero en Tino y que aparezca otro
-  personaje a hacerla.
+- **Partida, puntaje y pantalla final**: la partida dura 150 s desde el primer timer y termina antes si todos
+  los problemas quedan Hechos. El backend devuelve `round` (estado, motivo, segundos) y `score` (fuegos apagados,
+  eficiencia de priorización, tiempo y puntos) y apaga el timer al terminar. El juego muestra reloj, barra de estrés
+  y puntos; al final avisa a /feria (`feria:finished`), que muestra el dashboard real con la franja de KPIs y
+  "¿Jugás el siguiente?" (20 s de estadísticas + 10 s de cuenta regresiva; si nadie toca, vuelve al inicio).
+- **Correcciones del análisis**: el backend manda `dangerRate` por tarea (el timer en pausa ya no duplica el
+  peligro y el cliente no recalcula la regla), las consecuencias miden su peligro desde que aparecen, los ticks del
+  mismo usuario van en fila (dos pestañas no duplican consecuencias), las partículas se dibujan en su profundidad y
+  se reciclan, el panel se actualiza sin reconstruirse y el personaje recalcula el camino si aparece un objeto.
+- **Coach y juego más grande**: la escena escala para llenar el espacio (antes quedaba en 1× en medio monitor),
+  el globo dice frases cortas sin salirse de la escena y un coach debajo enseña a usar Tino con diálogos que van
+  saltando (bienvenida + pasos 1 a 3). /feria resalta dentro de Tino el control a tocar (`src/game/tinoCoach.ts`).
+  En pantallas de 768 px o más, Tino muestra los botones de las tarjetas sin subtareas solo al pasar el mouse: el
+  coach lo avisa.
+- **Duración de las tareas y dashboard de la partida**: las tareas del juego se crean con su duración como
+  estimación (`estimatedHours` = segundos de trabajo / 3600). El modal del cronómetro, cuando la estimación dura menos
+  de un minuto (solo pasa con el juego: Tino no deja cargarlas a mano), muestra "Esta tarea tardará N segundos" con la
+  duración fija en vez de los 30 min por defecto. La pantalla final dice "¡Gracias por jugar!" y abre
+  `/dashboard?projectId=<proyecto de la partida>`, que el dashboard toma como filtro inicial.
+  El dashboard redondea las horas registradas a 2 decimales (36 s), así que tareas de pocos segundos pueden verse en 0.
+- **Fin de partida y vuelta a cero**: la franja final es una sola fila (gracias + KPIs) y "¿Jugás el siguiente?"
+  es una barra fina; "Seguir mirando" no vuelve a preguntar. La partida terminada queda marcada en Proyectos
+  ("Tu última partida", primera de la lista; se guarda en localStorage `feria:last-game-project`). Al volver al
+  inicio (botón o fin de la cuenta regresiva) /feria llama a `POST /demo/reset-all`, que borra los proyectos
+  "Feria · ..." con sus tareas y horas, y olvida la marca: el próximo visitante empieza de cero.
+- **Temporizador y menús de Tino**: con una tarea del juego, el temporizador cuenta desde su duración (p. ej. 12 s)
+  en vez de 1 min. En las tarjetas, abrir un menú de estado cierra los otros y elegir una opción lo cierra.
+- **Finalizar partida y recorrido del Dashboard**: el botón "Finalizar partida" de /feria llama a
+  `POST /demo/finish`: la partida termina en ese momento (motivo `ended`, guardado en memoria del backend hasta el
+  próximo reset), se apaga el timer y se pasa directo a las estadísticas. "Seguir mirando" arranca un recorrido de
+  12 pasos por el Dashboard real (`src/game/dashboardTour.ts`): filtros, los 4 KPIs, fricción y riesgo, estados,
+  prioridades, desvío, mapa de actividad, tareas que requieren atención y Proyectos. Cada paso resalta su tarjeta
+  dentro del Dashboard con el mismo aro del coach; se puede cerrar y volver a abrir con "Ver recorrido del Dashboard".
+- **Velocidad**: el frontend de la feria corre en modo producción (`next build` + `next start`). En modo desarrollo
+  sobre la carpeta de Windows cada pedido a la API pasaba por el proxy en ~1 s y cada página compilaba al entrar
+  (hasta 8 s); ahora las páginas responden en ~30 ms, el JS baja de 1,3 MB a 290 KB y el dashboard de la pantalla
+  final muestra datos en ~0,9 s. El dashboard toma `?projectId=` como filtro inicial (antes cargaba toda la empresa
+  y después filtraba) y la pantalla final desmonta los iframes del juego y de Tino, que seguían consultando.
+  Contra: cada arranque del contenedor compila (1-3 min) y los cambios de código necesitan
+  `docker compose -f docker-compose.feria.yml restart frontend`; para programar, `.\feria.ps1 dev`.
+- **Pendiente para el juego**: Mobile y WhatsApp (fase 3), modo atracción (fase 6), sonido. Idea: delegar
+  una tarea a un compañero en Tino y que aparezca otro personaje a hacerla.
+
+## Versión web para el celular (`web/`)
+
+Pedido tras la validación: contexto de oficina, minijuegos y jugable desde el celular en un servidor, por un día y
+sin base de datos. Es una carpeta estática aparte (HTML/CSS/JS sin build) que se sube tal cual a GitHub Pages;
+el juego de la feria (`frontend/public/juego`) no se tocó.
+
+- **Sin backend**: `web/js/sim.js` hace en el navegador lo que hacía `/demo/tick` (tareas, timer, vencimientos,
+  errores de prioridad, puntos). El panel de Tino real se reemplaza por `web/js/tino.js`, tarjetas con el estilo de
+  Tino (prioridad, estado, "Vence en", Real, ▶ Iniciar / ⏸ Pausar y ✓ Completar).
+- **Oficina**: un solo escenario con 4 tareas (internet caído, reclamo por mail, café del jefe y cliente que llega
+  a los 20 s). Arte nuevo: rack con cables, jefe en su escritorio, puerta con lector, cafetera.
+- **Minijuegos estilo Among Us** (`web/js/minigames/`): conectar cables, desbloquear la PC (1 al 10), café del jefe
+  con opciones (tipo, azúcar, taza) y pasar la tarjeta. Se abren cuando el personaje llega; resolverlos apaga el
+  timer y cerrarlos con ✕ lo pausa.
+- **Vencimientos**: completar después del plazo deja la tarea como "Completada vencida" (40 pts en vez de 100).
+- **Sin intro ni coach**: solo señales visuales (el botón a tocar late, la tarea más urgente tiembla si se elige mal).
+- **Final**: completadas a tiempo, vencidas, sin terminar, priorización, tiempo total, barras por tarea, puntos,
+  mejor puntaje del celular y "Jugar otra vez".
+- Probado en el navegador vertical (375x812), acostado (812x375) y PC (1280x720), con una partida completa.
+  Tests: `cd web; node --test tests/*.test.js` (21 tests). Pasos de subida en `web/README.md`.
 
 ## Cómo levantarlo
 
 ```powershell
-.eria.ps1              # levanta todo y abre http://localhost:3000 (no pide login)
-.eria.ps1 reset-demo   # rehace la empresa demo
-.eria.ps1 logs | stop | clean
+.\feria.ps1              # levanta todo y abre http://localhost:3000 (no pide login; frontend en producción)
+.\feria.ps1 dev          # igual, con el frontend en modo desarrollo (recarga en vivo, más lento)
+.\feria.ps1 reset-demo   # rehace la empresa demo
+.\feria.ps1 logs | stop | clean
 ```
 
 Al arrancar, el backend aplica migraciones, corre `prisma/seed.ts` (planes y roles) y `prisma/seed-feria.ts`

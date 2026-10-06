@@ -35,10 +35,11 @@ export function createDecor(kind, tx, ty, seed) {
 
 /**
  * Objeto de una tarea de Tino. Muestra el problema hasta que la tarea se resuelve;
- * `progress` (0 a 1) sale de los segundos de timer trabajados.
+ * `progress` (0 a 1) sale de los segundos de timer trabajados y `cell` es su celda en el mapa
+ * (las partículas que salen de él se dibujan en esa profundidad).
  */
 export class TaskObject extends Prop {
-  constructor(tx, ty, action, task) {
+  constructor(tx, ty, action, task, cell = -1) {
     super(tx + 0.5, ty + 0.5, getObjectArt(action.kind, false));
     this.tx = tx;
     this.ty = ty;
@@ -47,18 +48,19 @@ export class TaskObject extends Prop {
     this.progress = 0;
     this.solved = false;
     this.visible = true;
+    this.cell = cell;
   }
 
   /** Punto (pantalla del mundo) donde nace el efecto del problema: arriba del objeto. */
   get effectPoint() {
     const p = worldToScreen(this.x, this.y, 0);
-    return { x: p.x, y: p.y - this.action.fxHeight };
+    return { x: p.x, y: p.y - this.action.fxHeight, cell: this.cell };
   }
 
   /** Punto (pantalla del mundo) al que apunta el personaje al trabajar. */
   get targetPoint() {
     const p = worldToScreen(this.x, this.y, 0);
-    return { x: p.x, y: p.y - Math.min(10, this.action.fxHeight) };
+    return { x: p.x, y: p.y - Math.min(10, this.action.fxHeight), cell: this.cell };
   }
 
   setSolved(solved) {

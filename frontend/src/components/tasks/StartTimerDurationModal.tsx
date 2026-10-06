@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { Task } from '@/types/task';
-import { normalizeDurationParts } from '@/lib/time';
+import { normalizeDurationParts, secondsToHMS } from '@/lib/time';
 import Button from '@/components/ui/Button';
 import Portal from '@/components/ui/Portal';
-import { MAX_TASK_HOURS, MAX_TASK_MINUTES, parseTaskDuration, TASK_DURATION_ERROR } from '@/lib/taskDuration';
+import {
+  MAX_TASK_HOURS,
+  MAX_TASK_MINUTES,
+  parseTaskDuration,
+  shortTaskSeconds,
+  TASK_DURATION_ERROR,
+} from '@/lib/taskDuration';
 
 interface StartTimerDurationModalProps {
   isOpen: boolean;
@@ -38,7 +44,8 @@ export default function StartTimerDurationModal({
 
   if (!isOpen || !task) return null;
 
-  const totalMinutes = parseTaskDuration(hours, minutes);
+  const shortSeconds = shortTaskSeconds(task);
+  const totalMinutes = shortSeconds ? 1 : parseTaskDuration(hours, minutes);
 
   const handleDurationBlur = () => {
     const normalized = normalizeDurationParts(hours, minutes);
@@ -82,47 +89,59 @@ export default function StartTimerDurationModal({
           </div>
 
           <p className="mb-4 text-sm text-[var(--color-text-subtle)]">
-            Configurá cuánto tiempo querés trabajar en{' '}
+            {shortSeconds ? 'Vas a trabajar en' : 'Configurá cuánto tiempo querés trabajar en'}{' '}
             <span className="font-semibold text-[var(--color-text)]">{task.title}</span>.
           </p>
 
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="number"
-                min="0"
-                max={MAX_TASK_HOURS}
-                step="1"
-                value={hours}
-                onChange={(e) => setHours(e.target.value)}
-                onBlur={handleDurationBlur}
-                className="app-input text-center font-mono"
-                placeholder="HH"
-                aria-label="Horas"
-              />
-              <span className="absolute -top-2 left-2 bg-white px-1 text-[10px] text-gray-400 font-bold uppercase">
-                HRS
-              </span>
+          {shortSeconds ? (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700">Duración de la tarea</p>
+              <p className="font-mono text-3xl font-bold text-[var(--color-text)]" aria-label="Duración de la tarea">
+                {secondsToHMS(shortSeconds)}
+              </p>
+              <p className="mt-1 text-xs leading-snug text-blue-800">
+                Esta tarea tardará {shortSeconds} segundos en realizarse. El cronómetro no puede durar más que eso.
+              </p>
             </div>
-            <span className="text-xl font-bold text-gray-300">:</span>
-            <div className="relative flex-1">
-              <input
-                type="number"
-                min="0"
-                max="59"
-                step="1"
-                value={minutes}
-                onChange={(e) => setMinutes(e.target.value)}
-                onBlur={handleDurationBlur}
-                className="app-input text-center font-mono"
-                placeholder="MM"
-                aria-label="Minutos"
-              />
-              <span className="absolute -top-2 left-2 bg-white px-1 text-[10px] text-gray-400 font-bold uppercase">
-                MIN
-              </span>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  min="0"
+                  max={MAX_TASK_HOURS}
+                  step="1"
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                  onBlur={handleDurationBlur}
+                  className="app-input text-center font-mono"
+                  placeholder="HH"
+                  aria-label="Horas"
+                />
+                <span className="absolute -top-2 left-2 bg-white px-1 text-[10px] text-gray-400 font-bold uppercase">
+                  HRS
+                </span>
+              </div>
+              <span className="text-xl font-bold text-gray-300">:</span>
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  step="1"
+                  value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)}
+                  onBlur={handleDurationBlur}
+                  className="app-input text-center font-mono"
+                  placeholder="MM"
+                  aria-label="Minutos"
+                />
+                <span className="absolute -top-2 left-2 bg-white px-1 text-[10px] text-gray-400 font-bold uppercase">
+                  MIN
+                </span>
+              </div>
             </div>
-          </div>
+          )}
           {totalMinutes === null ? <p role="alert" className="mt-2 text-sm text-red-600">{TASK_DURATION_ERROR}</p> : null}
 
           <div className="flex gap-3 border-t border-[var(--color-border)] pt-5 mt-6">

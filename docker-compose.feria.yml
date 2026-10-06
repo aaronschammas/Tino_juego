@@ -6,6 +6,9 @@
 # Base de cero:  docker compose -f docker-compose.feria.yml down -v
 #
 # Tino queda en http://localhost:3000 (el backend solo se publica en 8080 para depurar).
+# El frontend corre en modo producción (next build + next start): es mucho más rápido que `next dev` sobre una
+# carpeta de Windows, pero cada arranque compila (2-3 min). Para programar con recarga en vivo:
+#   docker compose -f docker-compose.feria.yml -f docker-compose.feria.dev.yml up -d   (o .\feria.ps1 dev)
 name: tino-feria
 
 services:
@@ -73,7 +76,8 @@ services:
     environment:
       - BACKEND_API_URL=http://backend:8080
       - TZ=America/Argentina/Buenos_Aires
-      - WATCHPACK_POLLING=true
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
     ports:
       - '3000:3000'
     depends_on:
@@ -83,7 +87,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
-    command: npm run dev
+    command: sh -c "npm run build && npm run start"
 
 volumes:
   tino-feria-db:

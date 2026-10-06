@@ -80,6 +80,12 @@ function DashboardOnboarding({
  * Operational dashboard. Metrics load in parallel with the workspace state;
  * only a workspace already known to have no tasks skips them.
  */
+/** Proyecto que llega en `?projectId=` (pantalla final del juego de la feria): el Dashboard abre ya filtrado. */
+function projectIdFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('projectId');
+}
+
 export default function BIDashboardPage() {
   const router = useRouter();
   const { activeMembership, activeOrganization, user } = useAuth();
@@ -89,6 +95,7 @@ export default function BIDashboardPage() {
     state: OrganizationWorkspaceState | null;
     loaded: boolean;
   }>({ organizationId: null, state: null, loaded: false });
+  const [urlProjectId] = useState(projectIdFromUrl);
   const workspaceState =
     workspaceSnapshot.organizationId === activeOrganization?.id
       ? workspaceSnapshot.state
@@ -112,7 +119,10 @@ export default function BIDashboardPage() {
     error,
     loadMoreTasks,
     refetch,
-  } = useDashboardV2({ enabled: workspaceState?.hasAccessibleTasks !== false });
+  } = useDashboardV2({
+    enabled: workspaceState?.hasAccessibleTasks !== false,
+    initialFilters: urlProjectId ? { projectId: urlProjectId } : undefined,
+  });
   const { projects, isLoading: projectsLoading, error: projectsError } = useProjects();
   const { createTask } = useTasks();
   const [selectedTaskId] = useState<string | null>(null);

@@ -30,33 +30,38 @@ html, body {
 }
 
 #banner {
-  padding: 12px 16px 4px;
+  padding: 8px 12px 2px;
   text-align: center;
 }
 
 #banner h1 {
   margin: 0;
-  font-size: clamp(14px, 2.4vw, 22px);
+  font-size: clamp(12px, 1.9vw, 18px);
   color: var(--medium);
   text-shadow: 2px 2px 0 #000;
 }
 
 #banner p {
-  margin: 6px auto 0;
-  max-width: 60ch;
-  font-size: clamp(10px, 1.4vw, 13px);
+  margin: 4px auto 0;
+  max-width: 70ch;
+  font-size: clamp(9px, 1.1vw, 11px);
   color: var(--muted);
   line-height: 1.5;
 }
 
+/* El canvas va centrado y fuera del flujo: su tamaño sale del espacio de #stage, nunca al revés. */
 #stage {
+  position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
 }
 
 #game {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: block;
   background: var(--bg);
   /* Escalado sin suavizado: el último valor soportado gana (Firefox usa crisp-edges). */
@@ -65,18 +70,12 @@ html, body {
 }
 
 #panel {
-  padding: 8px 16px 16px;
+  flex: none;
+  padding: 6px 10px 8px;
   background: var(--panel);
   border-top: 4px solid #000;
-  max-height: 46%;
+  max-height: 26%;
   overflow-y: auto;
-}
-
-.hint {
-  margin: 0 0 8px;
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
 }
 
 #tasks {
@@ -84,7 +83,7 @@ html, body {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .task {
@@ -93,21 +92,21 @@ html, body {
   grid-template-areas: 'chip title bar' 'chip state danger';
   align-items: center;
   gap: 2px 10px;
-  padding: 6px 10px;
+  padding: 3px 8px;
   background: var(--bg);
   border: 2px solid #000;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .task.active { border-color: var(--medium); }
 .task.group { background: #1f2236; }
 .task.group .bar { visibility: hidden; }
-.task.sub { margin-left: 22px; }
+.task.sub { margin-left: 18px; }
 
 .danger {
   grid-area: danger;
   justify-self: end;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--high);
 }
 
@@ -121,8 +120,8 @@ html, body {
 
 .chip {
   grid-area: chip;
-  padding: 4px 6px;
-  font-size: 9px;
+  padding: 3px 5px;
+  font-size: 8px;
   color: #000;
   text-transform: uppercase;
 }
@@ -133,7 +132,7 @@ html, body {
 .priority-low .chip { background: var(--low); }
 
 .task-title { grid-area: title; }
-.task-state { grid-area: state; font-size: 10px; color: var(--muted); }
+.task-state { grid-area: state; font-size: 9px; color: var(--muted); }
 .task.solved .task-state { color: var(--ok); }
 
 .bar {
@@ -156,22 +155,23 @@ html, body {
   position: fixed;
   left: 0;
   top: 0;
-  max-width: 260px;
-  padding: 8px 10px;
+  max-width: 190px;
+  padding: 5px 8px;
   background: #fff;
   color: #000;
   border: 3px solid #000;
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: 10px;
+  line-height: 1.35;
   text-align: center;
   pointer-events: none;
-  margin-top: -10px;
+  margin-top: -8px;
+  opacity: 0.95;
 }
 
 #bubble::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: var(--tail, 50%);
   bottom: -11px;
   margin-left: -6px;
   border: 6px solid transparent;
@@ -180,22 +180,23 @@ html, body {
 
 #bubble-warning {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--critical);
-  font-size: 10px;
+  font-size: 9px;
 }
 
-#bubble[hidden], #bubble-warning[hidden], #status[hidden], #toast[hidden] { display: none; }
+#bubble[hidden], #bubble-warning[hidden], #status[hidden], #toast[hidden], #final[hidden], .danger[hidden],
+#coach[hidden], #coach-next[hidden], #coach-arrow[hidden] { display: none; }
 
 #toast {
-  position: fixed;
-  top: 18%;
+  position: absolute;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   max-width: 90%;
-  padding: 12px 18px;
-  border: 4px solid #000;
-  font-size: clamp(12px, 1.8vw, 16px);
+  padding: 6px 12px;
+  border: 3px solid #000;
+  font-size: clamp(10px, 1.3vw, 13px);
   line-height: 1.4;
   text-align: center;
   box-shadow: 4px 4px 0 #000;
@@ -214,3 +215,97 @@ html, body {
   background: var(--critical);
   font-size: 10px;
 }
+
+#meters {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin-top: 6px;
+  font-size: clamp(9px, 1.2vw, 12px);
+}
+
+#clock { color: var(--text); }
+#clock.waiting { color: var(--muted); }
+#clock.urgent { color: var(--critical); animation: blink 0.5s steps(2) infinite; }
+
+#stress { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+#stress .meter { width: 90px; height: 10px; background: #000; border: 2px solid #000; }
+#stress .fill { background: var(--medium); }
+#stress.high .fill { background: var(--critical); }
+#stress.high .label { color: var(--critical); }
+
+#points { color: var(--medium); }
+
+#final {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: min(360px, 90%);
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 4px solid #000;
+  box-shadow: 6px 6px 0 #000;
+  text-align: center;
+}
+
+#final h2 { margin: 0 0 12px; font-size: clamp(12px, 2vw, 18px); color: var(--medium); }
+#final dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; margin: 0; font-size: 11px; text-align: left; }
+#final dt { color: var(--muted); }
+#final dd { margin: 0; text-align: right; }
+
+#coach {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 10px 8px;
+  padding: 8px 12px;
+  background: #fff8e1;
+  color: #1a1c2c;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  cursor: default;
+}
+
+#coach.warn { background: #ffe0b2; }
+#coach.good { background: #dcedc8; }
+#coach.pop { animation: coach-pop 0.45s steps(6); }
+
+@keyframes coach-pop {
+  0% { transform: translateY(14px) scale(0.92); opacity: 0; }
+  60% { transform: translateY(-4px) scale(1.03); opacity: 1; }
+  100% { transform: none; }
+}
+
+#coach-arrow {
+  flex: none;
+  padding: 6px 8px;
+  background: var(--critical);
+  color: #fff;
+  font-size: 10px;
+  animation: nudge-left 0.8s steps(2) infinite;
+}
+
+@keyframes nudge-left { 50% { transform: translateX(-4px); } }
+
+.coach-body { flex: 1; min-width: 0; }
+#coach-step { display: block; font-size: 8px; color: #6d4c41; text-transform: uppercase; }
+#coach-title { display: block; margin-top: 3px; font-size: clamp(10px, 1.3vw, 13px); }
+#coach-text { margin: 5px 0 0; font-size: clamp(9px, 1.1vw, 11px); line-height: 1.5; }
+
+.coach-actions { display: flex; flex-direction: column; gap: 6px; }
+
+.coach-actions button {
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 9px;
+  color: #fff;
+  background: #1e3a5f;
+  border: 2px solid #000;
+  cursor: pointer;
+}
+
+#coach.collapsed { cursor: pointer; padding: 5px 12px; }
+#coach.collapsed #coach-text, #coach.collapsed .coach-actions, #coach.collapsed #coach-step { display: none; }

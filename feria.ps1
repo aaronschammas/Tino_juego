@@ -1,13 +1,14 @@
 ﻿# Tino Feria: levantar, frenar y reiniciar el entorno local con Docker.
 #
-#   .\feria.ps1            levanta todo y abre http://localhost:3000
+#   .\feria.ps1            levanta todo y abre http://localhost:3000 (frontend en modo producción, rápido)
+#   .\feria.ps1 dev        igual, pero con el frontend en modo desarrollo (recarga en vivo, más lento)
 #   .\feria.ps1 reset-demo rehace la empresa demo desde cero
 #   .\feria.ps1 logs       muestra los logs del backend y el frontend
 #   .\feria.ps1 stop       frena los contenedores (los datos quedan)
 #   .\feria.ps1 clean      frena y borra la base (vuelve a cargarse al levantar)
 #
 # Si Windows bloquea el script: powershell -ExecutionPolicy Bypass -File .\feria.ps1
-param([ValidateSet('up', 'reset-demo', 'logs', 'stop', 'clean')][string]$Action = 'up')
+param([ValidateSet('up', 'dev', 'reset-demo', 'logs', 'stop', 'clean')][string]$Action = 'up')
 
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -44,7 +45,7 @@ function Wait-Frontend {
     Write-Host 'Esperando a que Tino responda en http://localhost:3000 ...'
     for ($i = 0; $i -lt 120; $i++) {
         try {
-            $response = Invoke-WebRequest 'http://localhost:3000/login' -UseBasicParsing -TimeoutSec 5
+            $response = Invoke-WebRequest 'http://localhost:3000/' -UseBasicParsing -TimeoutSec 5
             if ($response.StatusCode -eq 200) { return }
         } catch { }
         Start-Sleep -Seconds 3
@@ -58,9 +59,19 @@ switch ($Action) {
         New-EnvFile
         & docker @compose up -d --build
         if ($LASTEXITCODE -ne 0) { throw 'docker compose up falló.' }
+        Write-Host 'Compilando el frontend (2-3 minutos en cada arranque)...'
         Wait-Frontend
-        Write-Host 'Tino Feria listo: http://localhost:3000 (usuario y clave en .env.feria)'
-        Start-Process 'http://localhost:3000/login'
+        Write-Host 'Tino Feria listo: http://localhost:3000'
+        Start-Process 'http://localhost:3000/'
+    }
+    'dev' {
+        Wait-Docker
+        New-EnvFile
+        & docker @compose -f docker-compose.feria.dev.yml up -d --build
+        if ($LASTEXITCODE -ne 0) { throw 'docker compose up falló.' }
+        Wait-Frontend
+        Write-Host 'Tino Feria (modo desarrollo) listo: http://localhost:3000'
+        Start-Process 'http://localhost:3000/'
     }
     'reset-demo' {
         & docker exec tino-feria-backend npm run seed:feria -- --force

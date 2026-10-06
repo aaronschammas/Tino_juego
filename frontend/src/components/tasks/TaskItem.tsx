@@ -44,6 +44,20 @@ const statusActionConfig: Record<TaskStatus, Array<{ status: TaskStatus; label: 
   ],
 };
 
+/** Deja abierto un solo menú de estado a la vez: al abrir uno se cierran los de las otras tareas. */
+function closeOtherStatusMenus(menu: HTMLDetailsElement) {
+  if (!menu.open) return;
+  menu.ownerDocument.querySelectorAll<HTMLDetailsElement>('details[data-status-menu][open]').forEach((other) => {
+    if (other !== menu) other.open = false;
+  });
+}
+
+/** Cierra el menú de estado después de elegir una opción. */
+function closeStatusMenu(option: HTMLElement) {
+  const menu = option.closest<HTMLDetailsElement>('details[data-status-menu]');
+  if (menu) menu.open = false;
+}
+
 export default function TaskItem({
   task,
   onEdit,
@@ -308,7 +322,12 @@ export default function TaskItem({
                         </button>
                       )}
                       {subStatusActions.length > 0 && (
-                        <details className="group/subdetails relative" onClick={(event) => event.stopPropagation()}>
+                        <details
+                          data-status-menu
+                          className="group/subdetails relative"
+                          onClick={(event) => event.stopPropagation()}
+                          onToggle={(event) => closeOtherStatusMenus(event.currentTarget)}
+                        >
                           <summary
                             className="inline-flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-md border border-slate-200 bg-white text-[11px] text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-600 [&::-webkit-details-marker]:hidden"
                             title="Cambiar estado"
@@ -321,7 +340,10 @@ export default function TaskItem({
                               <button
                                 key={action.status}
                                 type="button"
-                                onClick={() => onStatusChange(subTask.id, action.status)}
+                                onClick={(event) => {
+                                  closeStatusMenu(event.currentTarget);
+                                  onStatusChange(subTask.id, action.status);
+                                }}
                                 disabled={isStatusUpdating}
                                 className="flex w-full items-center rounded-md px-3 py-1.5 text-left text-[11px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
                               >
@@ -426,7 +448,12 @@ export default function TaskItem({
           )}
 
           {availableStatusActions.length > 0 && (
-            <details className="group/details relative" onClick={(e) => e.stopPropagation()}>
+            <details
+              data-status-menu
+              className="group/details relative"
+              onClick={(e) => e.stopPropagation()}
+              onToggle={(e) => closeOtherStatusMenus(e.currentTarget)}
+            >
               <summary className="list-none inline-flex items-center justify-center h-9 w-9 md:h-6 md:w-6 rounded-lg md:rounded-md bg-white text-slate-600 shadow-sm border border-slate-200 transition-all hover:text-blue-600 hover:border-blue-200 cursor-pointer [&::-webkit-details-marker]:hidden">
                 {isStatusUpdating ? '⟳' : '→'}
               </summary>
@@ -435,7 +462,8 @@ export default function TaskItem({
                   <button
                     key={action.status}
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      closeStatusMenu(e.currentTarget);
                       setIsLeaving(true);
                       setTimeout(async () => {
                         try {

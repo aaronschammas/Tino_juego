@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { useAuth } from './useAuth';
 import { ActiveTimeResponse, StartTimeDto } from '@/types/time';
+import { timerTargetMinutes } from '@/lib/taskDuration';
 
 const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -48,9 +49,8 @@ export function useTimerState() {
       setActiveTimer(active);
 
       if (active?.id) {
-        if (active.targetMinutes) {
-          setTargetMinutes(active.targetMinutes);
-        }
+        const target = timerTargetMinutes(active, 0);
+        if (target) setTargetMinutes(target);
       }
 
       if (active?.startTime) {
@@ -98,7 +98,7 @@ export function useTimerState() {
         skewRef.current = Date.now() - serverTime;
       }
       setElapsedSeconds(0);
-      setTargetMinutes(minutes);
+      setTargetMinutes(timerTargetMinutes(data, minutes));
       
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('time:updated'));

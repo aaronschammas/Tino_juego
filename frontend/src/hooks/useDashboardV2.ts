@@ -98,8 +98,9 @@ function endpoint(path: string, query: string) {
 /**
  * Loads the four dashboard sections in parallel for the debounced filters.
  * Disabling the hook discards responses that are still in flight.
+ * `initialFilters` (for example the project of a fair game, from the URL) applies from the very first request.
  */
-export function useDashboardV2(options: { enabled?: boolean } = {}) {
+export function useDashboardV2(options: { enabled?: boolean; initialFilters?: Partial<DashboardFilters> } = {}) {
   const { user, isLoading: authLoading } = useAuth();
   const canUseWorkspace =
     Boolean(user?.organizationId) && options.enabled !== false;
@@ -108,6 +109,7 @@ export function useDashboardV2(options: { enabled?: boolean } = {}) {
     startDate: null,
     endDate: null,
     status: 'all',
+    ...options.initialFilters,
   };
   const initialCachedData = readDashboardCache(
     user?.id,

@@ -894,7 +894,9 @@ export default function TimerWidget() {
                 <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-100">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estimación</p>
                   <p className="mt-1 text-[14px] font-bold text-slate-900">
-                    {Math.floor(targetMinutes / 60)}h {targetMinutes % 60}m
+                    {targetMinutes < 1
+                      ? `${Math.round(targetMinutes * 60)}s`
+                      : `${Math.floor(targetMinutes / 60)}h ${targetMinutes % 60}m`}
                   </p>
                 </div>
                 <div className={`rounded-xl p-3.5 border ${elapsedSeconds >= targetMinutes * 60 ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>

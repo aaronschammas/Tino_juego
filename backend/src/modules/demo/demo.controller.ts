@@ -28,6 +28,20 @@ export class DemoController {
     return this.demo.reset(dto.scenario, user);
   }
 
+  /** Botón "Finalizar partida" de /feria: termina la partida ahora y devuelve el estado con el puntaje. */
+  @Post('finish')
+  @HttpCode(200)
+  finish(@Body() dto: DemoScenarioDto, @CurrentUser() user: DemoUser) {
+    return this.demo.finish(dto.scenario, user);
+  }
+
+  /** Lo llama /feria al volver al inicio: borra las partidas para que el próximo visitante empiece de cero. */
+  @Post('reset-all')
+  @HttpCode(200)
+  resetAll(@CurrentUser() user: DemoUser) {
+    return this.demo.resetAll(user);
+  }
+
   @Get('state')
   state(@Query() query: DemoScenarioDto, @CurrentUser() user: DemoUser) {
     return this.demo.getState(query.scenario, user);

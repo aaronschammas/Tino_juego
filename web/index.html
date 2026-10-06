@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1c2c" />
+  <meta name="description" content="Un día en la oficina: organizá tus tareas con Tino y resolvé los minijuegos." />
+  <title>Un día en la oficina · Tino</title>
+  <link rel="icon" href="img/logo-tino.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="game-side">
+      <header id="topbar">
+        <h1>Un día en la oficina</h1>
+        <span id="points">0 pts</span>
+      </header>
+      <!-- El canvas tiene resolución interna fija (320x200); se escala para llenar este espacio. -->
+      <div id="stage">
+        <canvas id="game" aria-label="La oficina en pixel art"></canvas>
+        <div id="toast" role="status" aria-live="assertive" hidden></div>
+      </div>
+    </section>
+
+    <section id="tino" aria-label="Tino">
+      <header class="tino-head">
+        <img src="img/logo-tino.png" alt="Tino" width="32" height="32" />
+        <div class="tino-project">
+          <small>Proyecto</small>
+          <strong>Oficina · Hoy</strong>
+        </div>
+        <span id="tino-clock">⏱ 0:00</span>
+      </header>
+      <ul id="tino-tasks" class="tino-list"></ul>
+      <h2 id="tino-done-title" class="tino-section" hidden>Completadas</h2>
+      <ul id="tino-done" class="tino-list"></ul>
+    </section>
+  </div>
+
+  <div id="bubble" hidden>
+    <span id="bubble-text"></span>
+    <small id="bubble-warning" hidden></small>
+  </div>
+
+  <div id="minigame" role="dialog" aria-modal="true" aria-labelledby="minigame-title" hidden>
+    <div class="mg-panel">
+      <header class="mg-head">
+        <strong id="minigame-title"></strong>
+        <button id="minigame-close" type="button" aria-label="Cerrar y pausar">✕</button>
+      </header>
+      <div id="minigame-body"></div>
+      <div class="mg-ok" aria-hidden="true">✓</div>
+    </div>
+  </div>
+
+  <div id="final" role="dialog" aria-modal="true" hidden></div>
+
+  <noscript>Este juego necesita JavaScript.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
