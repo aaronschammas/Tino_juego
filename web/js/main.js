@@ -6,8 +6,8 @@ import { Renderer } from './renderer.js';
 import { Effects, drawAlert } from './effects.js';
 import { TaskObject, createDecor } from './prop.js';
 import { ACTIONS, MAP_ROWS, SLOTS, TASKS, legend } from './scenario.js';
-import { OfficeSim, qualityFrom } from './sim.js';
-import { TinoPanel } from './tino.js';
+import { clockLabel, OfficeSim, qualityFrom } from './sim.js';
+import { TinoApp } from './tino.js';
 import { Hud } from './hud.js';
 import { MinigameHost } from './minigames/index.js';
 
@@ -36,31 +36,25 @@ const effects = new Effects();
 const hud = new Hud();
 const sim = new OfficeSim(TASKS);
 const minigames = new MinigameHost();
-const panel = new TinoPanel({
-  onStart(id) {
-    const result = sim.startTimer(id);
-    if (result.urgentId) {
-      panel.shake(result.urgentId);
-      hud.showToast(`¡Ojo! «${sim.task(result.urgentId).title}» era más urgente`, 'bad');
-    }
-    refresh();
+const tino = new TinoApp(sim, {
+  onMistake(urgentId) {
+    hud.showToast(`¡Ojo! «${sim.task(urgentId).title}» era más urgente`, 'bad');
   },
-  onPause() {
-    sim.pauseTimer();
-    refresh();
+  onNotice(text) {
+    hud.showToast(text, 'warn');
   },
-  onComplete(id) {
-    sim.complete(id);
-    refresh();
-  },
+  onChange: () => hud.setPoints(sim.points()),
 });
+const officeClock = document.getElementById('office-clock');
 
 let behavior = sim.behavior();
 
-/** Redibuja el panel de Tino y los puntos. */
+/** Redibuja Tino, los puntos y la hora de la oficina. */
 function refresh() {
-  panel.render(sim);
+  tino.render();
   hud.setPoints(sim.points());
+  const clock = `🕘 ${clockLabel(sim.elapsed)}`;
+  if (officeClock.textContent !== clock) officeClock.textContent = clock;
 }
 
 /** Índice de la celda donde está parado el personaje (sus partículas se dibujan en esa profundidad). */
@@ -91,8 +85,10 @@ function playEvents() {
       hud.showToast(`⏰ Se venció: ${task.title}`, 'bad');
       camera.shake(0.4, 2);
     } else if (event.type === 'solved') {
-      hud.showToast('¡Listo! Tocá ✓ Completar en Tino', 'good');
+      hud.showToast('¡Hecho! Ahora completala en Tino', 'good');
       if (object) effects.sparkle(object.effectPoint);
+    } else if (event.type === 'expired') {
+      hud.showToast('⏰ ¡Tiempo cumplido!', 'warn');
     } else if (event.type === 'done') {
       hud.showToast(event.late ? 'Completada, pero vencida' : '¡Completada a tiempo!', event.late ? 'warn' : 'good');
     } else if (event.type === 'finished') {
@@ -103,7 +99,7 @@ function playEvents() {
   }
 }
 
-/** Abre el minijuego de la tarea; resolverlo apaga el timer y cerrarlo lo pausa. */
+/** Abre el minijuego de la tarea; cerrarlo con ✕ pausa el timer (se retoma desde el temporizador de Tino). */
 function openMinigame(task) {
   minigames.open(task.minigame, task.id, {
     onDone(result) {
@@ -121,14 +117,17 @@ function openMinigame(task) {
 function driveWorker(dt) {
   behavior = sim.behavior((id) => ACTIONS[id]?.say ?? '');
   const target = objects.find((object) => object.action.key === behavior.taskId);
+  const keep = minigames.current && (sim.timer?.taskId === minigames.current.taskId || sim.expired?.taskId === minigames.current.taskId);
+  if (minigames.isOpen && !keep) minigames.hide();
 
-  if (target && behavior.mode === 'work') {
+  if (target && (behavior.mode === 'work' || behavior.mode === 'wait')) {
     const spot = map.workSpot(target.tx, target.ty);
     worker.goTo(map, spot);
     const atSpot = worker.arrived && spot && worker.isOn(spot);
-    worker.mode = atSpot ? 'work' : 'idle';
+    worker.mode = atSpot && behavior.mode === 'work' ? 'work' : 'idle';
     if (!atSpot) return;
     worker.lookAt(target.tx, target.ty);
+    if (behavior.mode !== 'work') return;
     emitWork(target, dt);
     if (!minigames.isOpen) openMinigame(target.task);
     return;

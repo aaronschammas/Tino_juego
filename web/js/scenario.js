@@ -5,29 +5,39 @@
 //   e escritorio · a archivo · c cafetera · p planta · i impresora · s sillón
 
 /**
- * Tareas de la partida (las de Tino):
- *   minigame  qué minijuego abre al llegar el personaje
- *   appearAt  segundo de la partida en que llega la tarea (0 = desde el principio)
- *   dueIn     segundos que tiene para completarse desde que llega; después queda vencida
+ * Tareas del proyecto de Tino (en minutos de oficina: 1 s real = 1 min, el día arranca 09:00):
+ *   minigame  qué minijuego abre al llegar el personaje (solo tareas simples y subtareas)
+ *   estimate  estimación de Tino; es lo que propone el cronómetro
+ *   appearAt  minuto en que llega la tarea (0 = desde el principio)
+ *   dueIn     minutos que tiene para completarse desde que llega; después queda vencida
+ *   subtasks  una tarea padre no tiene cronómetro: se trabaja en cada subtarea
  */
 export const TASKS = [
   {
-    id: 'red',
-    title: 'Se cayó internet',
-    description: 'Nadie puede trabajar: hay que reconectar los cables del rack.',
+    id: 'sistema',
+    title: 'Se cayó el sistema',
+    description: 'Nadie puede trabajar. Hay que reconectar la red y reiniciar el servidor.',
     priority: 'CRITICAL',
-    minigame: 'cables',
-    appearAt: 0,
-    dueIn: 45,
-  },
-  {
-    id: 'mail',
-    title: 'Responder el reclamo por mail',
-    description: 'Un cliente mandó un reclamo. Desbloqueá la PC y contestalo.',
-    priority: 'HIGH',
-    minigame: 'pc',
-    appearAt: 0,
-    dueIn: 75,
+    subtasks: [
+      {
+        id: 'red',
+        title: 'Reconectar los cables del rack',
+        description: 'Los cables quedaron sueltos.',
+        priority: 'CRITICAL',
+        minigame: 'cables',
+        estimate: 15,
+        dueIn: 40,
+      },
+      {
+        id: 'servidor',
+        title: 'Reiniciar el servidor',
+        description: 'La PC del servidor pide la clave.',
+        priority: 'CRITICAL',
+        minigame: 'pc',
+        estimate: 15,
+        dueIn: 60,
+      },
+    ],
   },
   {
     id: 'jefe',
@@ -35,8 +45,8 @@ export const TASKS = [
     description: 'El jefe pidió un café. Preparalo justo como lo pidió.',
     priority: 'MEDIUM',
     minigame: 'cafe',
-    appearAt: 0,
-    dueIn: 100,
+    estimate: 12,
+    dueIn: 110,
   },
   {
     id: 'puerta',
@@ -44,8 +54,9 @@ export const TASKS = [
     description: 'Llegó un cliente a la reunión. Abrile la puerta con tu tarjeta.',
     priority: 'HIGH',
     minigame: 'tarjeta',
+    estimate: 8,
     appearAt: 20,
-    dueIn: 40,
+    dueIn: 45,
   },
 ];
 
@@ -59,12 +70,12 @@ export const TASKS = [
  */
 export const ACTIONS = {
   red: { kind: 'rack', problem: 'sparks', work: 'sparks', fxHeight: 24, say: 'Cable rojo con rojo...' },
-  mail: { kind: 'mail', problem: 'alert', work: 'talk', fxHeight: 16, say: '¿Cuál era la clave?' },
+  servidor: { kind: 'mail', problem: 'alert', work: 'talk', fxHeight: 16, say: '¿Cuál era la clave?' },
   jefe: { kind: 'jefe', problem: 'steam', work: 'steam', fxHeight: 22, say: '¡Ya va su café, jefe!' },
   puerta: { kind: 'puerta', problem: 'ring', work: 'talk', fxHeight: 26, say: '¡Bienvenido! Pase.' },
 };
 
-export const SLOTS = ['red', 'jefe', 'mail', 'puerta'];
+export const SLOTS = ['red', 'jefe', 'servidor', 'puerta'];
 
 export const MAP_ROWS = [
   'WWWWWWWWW',

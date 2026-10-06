@@ -1,26 +1,39 @@
 # Un día en la oficina · Tino
 
 Juego estático (HTML + CSS + JavaScript, sin dependencias, sin build y sin base de datos) para jugar desde el celular.
-Se organiza el día con **Tino**: se inicia el timer de una tarea, el personaje va a resolverla, se juega un minijuego
-estilo Among Us y se completa la tarea en Tino. Una partida dura entre 1 y 3 minutos y termina con estadísticas.
+La mitad del juego **es Tino**: la página de un proyecto con las mismas tarjetas, botones, textos y pasos que la app
+real. El personaje hace en la oficina lo que se maneja desde Tino, con minijuegos estilo Among Us.
+Una partida dura unos 2 o 3 minutos y termina con estadísticas.
 
-## Cómo se juega
+El tiempo de la oficina va acelerado: **1 segundo real = 1 minuto** (el día arranca 09:00). Así las estimaciones,
+el cronómetro y los vencimientos se ven como en Tino (0 h 15 min, 📅 09:45...).
 
-1. Tocá **▶ Iniciar** en una tarea de Tino (el botón que late es el más urgente).
-2. El personaje camina hasta el problema y se abre el minijuego.
-3. Al resolverlo, el timer se apaga solo: tocá **✓ Completar**.
-4. Cada tarea vence: si se completa tarde queda como **completada vencida** (suma menos puntos).
-5. Elegir algo menos urgente que otra tarea pendiente es un error de prioridad (la tarjeta correcta tiembla).
+## Lo que se aprende de Tino
 
-| Tarea | Prioridad | Llega / vence | Minijuego |
-|---|---|---|---|
-| Se cayó internet | Crítica | 0 s / 45 s | Conectar los 4 cables a su color |
-| Responder el reclamo por mail | Alta | 0 s / 75 s | Desbloquear la PC tocando del 1 al 10 |
-| Llevarle un café al jefe | Media | 0 s / 100 s | Preparar el café pedido (tipo, azúcar y taza) |
-| Recibir al cliente | Alta | 20 s / 60 s | Pasar la tarjeta a la velocidad justa |
+| En Tino | En el juego |
+|---|---|
+| Tarjeta de tarea: tipo, avatar, prioridad, estado, 📅 vencimiento, "Real / Est" (rojo si se pasa) | Igual |
+| ⏱️ "Registrar tiempo" → **Configurar duración** → **Iniciar cronómetro** (propone lo que falta de la estimación) | El personaje va a la tarea y se abre el minijuego |
+| La tarea se asigna sola y pasa a **En progreso** | Igual |
+| "Ya tienes un timer activo. Detenlo antes de cambiar de tarea." | Igual |
+| Tarea padre: "Inicia el timer en una subtarea"; su estado sigue a las subtareas | "Se cayó el sistema" con 2 subtareas |
+| **Temporizador** flotante: pausa, **Finalizar y Completar Tarea**, **Detener temporizador** | Cerrar el minijuego con ✕ pausa el timer |
+| **¡Tiempo cumplido!**: +5 / +10 / +15 / +30 min o "Finalizar aquí" | Agregar tiempo sigue el minijuego |
+| Menú **→**: Mover a En progreso / Bloqueadas / Completadas | Completar exige el trabajo hecho |
+| ✓ Tomar tarea, vista **Lista / Tablero**, indicadores del proyecto, Seguimiento | Igual |
 
-**Puntos**: 100 por tarea a tiempo, 40 por vencida, hasta 30 extra según cómo salió el minijuego y −25 por cada
-error de prioridad. El mejor puntaje se guarda en el celular.
+No hay instrucciones escritas: el control que hay que tocar late (⏱, Iniciar cronómetro, Finalizar y Completar, →,
++5 min...). Elegir una tarea menos urgente que otra pendiente es un error de prioridad (la tarjeta correcta tiembla).
+
+| Tarea | Prioridad | Estimación | Llega / vence | Minijuego |
+|---|---|---|---|---|
+| Se cayó el sistema → Reconectar los cables del rack | Crítica | 15 min | 09:00 / 09:40 | Conectar los 4 cables a su color |
+| Se cayó el sistema → Reiniciar el servidor | Crítica | 15 min | 09:00 / 10:00 | Tocar del 1 al 10 en orden |
+| Llevarle un café al jefe | Media | 12 min | 09:00 / 10:50 | Preparar el café pedido (tipo, azúcar y taza) |
+| Recibir al cliente | Alta | 8 min | 09:20 / 10:05 | Pasar la tarjeta a la velocidad justa |
+
+**Puntos** por tarea: 100 si se completa a tiempo (40 si queda vencida), +20 si el tiempo real no pasa la estimación
+y hasta +30 según cómo salió el minijuego; −25 por cada error de prioridad. El mejor puntaje se guarda en el celular.
 
 Las tareas, prioridades y plazos están en `js/scenario.js`; el link del botón "Conocé Tino" en `js/config.js` (`TINO_URL`).
 
@@ -55,9 +68,9 @@ Para bajarlo después del evento: **Settings → Pages → Unpublish site** (o b
 | Archivo | Qué hace |
 |---|---|
 | `js/main.js` | Arma la oficina y el game loop (paso fijo 60 Hz); abre el minijuego cuando el personaje llega |
-| `js/sim.js` | La partida sin DOM: tareas, timer, vencimientos, errores de prioridad, puntos y estadísticas |
+| `js/sim.js` | La partida sin DOM con las reglas de Tino: tareas y subtareas, estados, cronómetro con duración, tiempo cumplido, vencimientos, puntos y estadísticas |
 | `js/scenario.js` | Tareas, cómo se ve cada una y el mapa de la oficina |
-| `js/tino.js` | Panel que imita a Tino: tarjetas con prioridad, estado, vencimiento, timer y completar |
+| `js/tino.js` | Tino dentro del juego: página del proyecto, tarjetas, Lista/Tablero, menú de estados, Configurar duración, Temporizador y ¡Tiempo cumplido! |
 | `js/hud.js` | Puntos, globo del personaje, avisos y estadísticas finales |
 | `js/minigames/` | Los 4 minijuegos (`cables`, `cafe`, `tarjeta`, `pc`) y la ventana que los abre |
 | `js/art.js` / `js/sprites.js` / `js/pixel.js` | Pixel art generado por código |

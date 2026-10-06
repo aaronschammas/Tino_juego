@@ -35,7 +35,7 @@ function mount(body, api, rng = Math.random) {
         return;
       }
       button.classList.add('lit');
-      screen.textContent = result.complete ? '✉️ Reclamo respondido' : `🔒 ${'•'.repeat(n)}`;
+      screen.textContent = result.complete ? '✅ Servidor reiniciado' : `🔒 ${'•'.repeat(n)}`;
       screen.className = `mg-screen${result.complete ? ' good' : ''}`;
       if (result.complete) {
         next = COUNT + 1;
@@ -49,4 +49,4 @@ function mount(body, api, rng = Math.random) {
   return () => {};
 }
 
-export default { title: 'Desbloqueá la PC', mount };
+export default { title: 'Reiniciá el servidor', mount };

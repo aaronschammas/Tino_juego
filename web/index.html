@@ -17,6 +17,7 @@
     <section id="game-side">
       <header id="topbar">
         <h1>Un día en la oficina</h1>
+        <span id="office-clock" title="Hora de la oficina (1 segundo = 1 minuto)">🕘 09:00</span>
         <span id="points">0 pts</span>
       </header>
       <!-- El canvas tiene resolución interna fija (320x200); se escala para llenar este espacio. -->
@@ -26,24 +27,165 @@
       </div>
     </section>
 
+    <!-- Tino: la página del proyecto, como en la app real. -->
     <section id="tino" aria-label="Tino">
-      <header class="tino-head">
-        <img src="img/logo-tino.png" alt="Tino" width="32" height="32" />
-        <div class="tino-project">
-          <small>Proyecto</small>
-          <strong>Oficina · Hoy</strong>
-        </div>
-        <span id="tino-clock">⏱ 0:00</span>
+      <header class="t-appbar">
+        <img src="img/logo-tino.png" alt="" width="28" height="28" />
+        <strong>Tino</strong>
+        <nav class="t-nav"><span>Dashboard</span><span class="current">Proyectos</span></nav>
+        <span class="t-user" title="Vos">YO</span>
       </header>
-      <ul id="tino-tasks" class="tino-list"></ul>
-      <h2 id="tino-done-title" class="tino-section" hidden>Completadas</h2>
-      <ul id="tino-done" class="tino-list"></ul>
+
+      <div class="t-page">
+        <span class="t-back">← Volver a proyectos</span>
+        <h1 class="t-title">Oficina · Hoy</h1>
+        <div class="t-pills">
+          <span class="t-pill priority-high">Alta</span>
+          <span class="t-pill is-active">Activo</span>
+          <span id="t-timer-pill" class="t-pill timer" hidden>Timer activo</span>
+        </div>
+
+        <div class="t-kpis">
+          <article class="t-kpi"><small>Tareas</small><strong id="kpi-tasks">0</strong><span id="kpi-tasks-sub"></span></article>
+          <article class="t-kpi"><small>Estimado total</small><strong id="kpi-estimate" class="mono primary">00:00:00</strong><span>Planificado (HH:mm:ss)</span></article>
+          <article class="t-kpi"><small>Tiempo real</small><strong id="kpi-actual" class="mono">00:00:00</strong><span>Registrado (HH:mm:ss)</span></article>
+          <article class="t-kpi"><small>Subtareas</small><strong id="kpi-subtasks">0</strong><span id="kpi-subtasks-sub"></span></article>
+        </div>
+
+        <div class="t-tasks-head">
+          <div>
+            <h2>Tareas <span id="t-count" class="t-count">0</span></h2>
+            <p>Las tareas padre organizan el trabajo. El timer se inicia en tareas simples o subtareas.</p>
+          </div>
+          <div class="t-toggle" role="group" aria-label="Vista">
+            <button type="button" data-view="list"><span>☰</span> Lista</button>
+            <button type="button" data-view="board"><span>⧉</span> Tablero</button>
+          </div>
+        </div>
+
+        <div class="t-tasks-box">
+          <div id="t-list" class="t-list"></div>
+          <div id="t-board" class="t-board" hidden>
+            <section class="t-column col-todo" data-status="TODO"><header><i></i><h3>Por hacer</h3><b>0</b></header><div class="t-column-body"></div></section>
+            <section class="t-column col-in_progress" data-status="IN_PROGRESS"><header><i></i><h3>En progreso</h3><b>0</b></header><div class="t-column-body"></div></section>
+            <section class="t-column col-blocked" data-status="BLOCKED"><header><i></i><h3>Bloqueadas</h3><b>0</b></header><div class="t-column-body"></div></section>
+            <section class="t-column col-done" data-status="DONE"><header><i></i><h3>Completadas</h3><b>0</b></header><div class="t-column-body"></div></section>
+          </div>
+        </div>
+
+        <article class="t-card-box t-tracking">
+          <h2>Seguimiento</h2>
+          <div id="t-tracking-on" class="t-tracking-on" hidden>
+            <div><strong>En curso</strong><span id="t-tracking-task"></span></div>
+            <button type="button" id="t-tracking-stop" class="t-btn danger sm">Detener</button>
+          </div>
+          <p id="t-tracking-off">Sin timer activo</p>
+        </article>
+      </div>
     </section>
   </div>
 
   <div id="bubble" hidden>
     <span id="bubble-text"></span>
     <small id="bubble-warning" hidden></small>
+  </div>
+
+  <!-- Menú "→" de estados de una tarjeta. -->
+  <div id="t-menu" class="t-menu" hidden></div>
+
+  <!-- Temporizador flotante de Tino: botón "Temporizador" o el timer en curso. -->
+  <div id="t-widget" class="t-widget">
+    <button type="button" id="t-widget-open" class="t-widget-pill"><span class="t-widget-icon">⏱</span> Temporizador</button>
+    <div id="t-widget-running" class="t-widget-card" hidden>
+      <div id="t-widget-head" class="t-widget-head">
+        <div class="t-widget-row">
+          <span class="t-widget-dot"></span>
+          <span id="t-widget-time" class="t-widget-time">00:00</span>
+          <button type="button" id="t-widget-pause" class="t-widget-pause" data-hint="widget-resume" aria-label="Pausar">❚❚</button>
+          <span id="t-widget-badge" class="t-widget-badge" hidden>PAUSADO</span>
+          <span id="t-widget-toggle" class="t-widget-toggle">Ver ▾</span>
+        </div>
+        <div class="t-widget-progress"><span id="t-widget-bar"></span></div>
+      </div>
+      <div id="t-widget-body" class="t-widget-body" hidden>
+        <div><small>Proyecto</small><p class="strong">Oficina · Hoy</p></div>
+        <div><small>Tarea</small><p id="t-widget-task"></p><p id="t-widget-status" class="t-widget-status"></p></div>
+        <div class="t-widget-grid">
+          <div><small>Estimación</small><strong id="t-widget-target"></strong></div>
+          <div class="blue"><small>Restante</small><strong id="t-widget-left"></strong></div>
+        </div>
+        <button type="button" id="t-widget-finish" class="t-btn primary block" data-hint="widget-finish">✔ Finalizar y Completar Tarea</button>
+        <button type="button" id="t-widget-stop" class="t-btn danger block">Detener temporizador</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- "Configurar duración" (al tocar ⏱ en una tarea). -->
+  <div id="t-duration" class="t-modal" role="dialog" aria-modal="true" hidden>
+    <div class="t-modal-card">
+      <div class="t-modal-head">
+        <div><small>Cronómetro</small><h2>Configurar duración</h2></div>
+        <button type="button" class="t-modal-x" data-close aria-label="Cerrar">✕</button>
+      </div>
+      <p class="t-modal-text">Configurá cuánto tiempo querés trabajar en <strong id="t-duration-task"></strong>.</p>
+      <div class="t-duration-inputs">
+        <label><span>HRS</span><input id="t-duration-hours" type="number" inputmode="numeric" min="0" max="999" /></label>
+        <b>:</b>
+        <label><span>MIN</span><input id="t-duration-minutes" type="number" inputmode="numeric" min="0" max="59" /></label>
+      </div>
+      <p id="t-duration-error" class="t-error" hidden>La estimación máxima permitida es de 999 h 59 min</p>
+      <div class="t-modal-actions">
+        <button type="button" class="t-btn secondary" data-close>Cancelar</button>
+        <button type="button" id="t-duration-start" class="t-btn primary" data-hint="modal-start">Iniciar cronómetro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- "Iniciar seguimiento" (botón Temporizador). -->
+  <div id="t-selector" class="t-modal sheet" role="dialog" aria-modal="true" hidden>
+    <div class="t-modal-card">
+      <button type="button" class="t-modal-x corner" data-close aria-label="Cerrar">✕</button>
+      <div class="t-modal-icon-head"><span class="t-modal-icon">🕒</span><div><small>Cronómetro</small><h2>Iniciar seguimiento</h2></div></div>
+      <p class="t-modal-text">Registra tiempo al proyecto completo o vinculalo a una tarea puntual.</p>
+      <label class="t-field"><span>Proyecto <em>*</em></span>
+        <select id="t-selector-project"><option value="">Seleccionar proyecto</option><option value="oficina" selected>Oficina · Hoy</option></select>
+      </label>
+      <label class="t-field"><span class="muted">Tarea <small>(opcional)</small></span>
+        <select id="t-selector-task"></select>
+        <small class="t-field-help">Las tareas padre con subtareas no aparecen aca. Elegi una subtarea.</small>
+      </label>
+      <div class="t-field"><span>Tiempo a trabajar <em>*</em></span>
+        <div class="t-hm"><label><input id="t-selector-hours" type="number" inputmode="numeric" min="0" /><i>h</i></label><label><input id="t-selector-minutes" type="number" inputmode="numeric" min="0" max="59" /><i>m</i></label></div>
+      </div>
+      <div class="t-info">🔔 Te avisaremos cuando el tiempo termine para que puedas descansar o continuar.</div>
+      <div class="t-modal-actions spread">
+        <button type="button" class="t-link" data-close>Cancelar</button>
+        <button type="button" id="t-selector-start" class="t-btn primary">+ Iniciar temporizador</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- "¡Tiempo cumplido!" cuando se termina la duración del cronómetro. -->
+  <div id="t-expired" class="t-modal sheet" role="dialog" aria-modal="true" hidden>
+    <div class="t-modal-card">
+      <div class="t-modal-icon-head"><span class="t-modal-icon amber">⏰</span><div><small class="amber">Temporizador</small><h2>¡Tiempo cumplido!</h2></div></div>
+      <p class="t-modal-text">La sesión de trabajo para el proyecto <strong>Oficina · Hoy</strong> y la tarea <strong id="t-expired-task"></strong> ha finalizado y se ha registrado con éxito.</p>
+      <p class="t-modal-question">¿Deseas agregar más tiempo?</p>
+      <small class="t-caption">Accesos rápidos</small>
+      <div class="t-quick">
+        <button type="button" data-add="5" data-hint="expired-add">+5 min</button>
+        <button type="button" data-add="10">+10 min</button>
+        <button type="button" data-add="15">+15 min</button>
+        <button type="button" data-add="30">+30 min</button>
+      </div>
+      <div class="t-field"><span>O ingresa un tiempo personalizado</span>
+        <div class="t-hm"><label><input id="t-expired-hours" type="number" inputmode="numeric" min="0" value="0" /><i>h</i></label><label><input id="t-expired-minutes" type="number" inputmode="numeric" min="0" max="59" value="5" /><i>m</i></label></div>
+      </div>
+      <div class="t-modal-actions spread">
+        <button type="button" id="t-expired-finish" class="t-link" data-hint="expired-finish">Finalizar aquí</button>
+        <button type="button" id="t-expired-start" class="t-btn primary">+ Iniciar temporizador</button>
+      </div>
+    </div>
   </div>
 
   <div id="minigame" role="dialog" aria-modal="true" aria-labelledby="minigame-title" hidden>

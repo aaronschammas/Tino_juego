@@ -1,5 +1,5 @@
 // Interfaz HTML sobre el canvas: puntos, globo del personaje, avisos y estadísticas finales.
-import { formatClock, PRIORITY_LABEL } from './sim.js';
+import { clockLabel, minutesToHMS, PRIORITY_LABEL } from './sim.js';
 
 const FINAL_TITLE = {
   cleared: '¡Oficina en orden!',
@@ -14,8 +14,10 @@ export function finalLines(score) {
     ['Completadas a tiempo', `${score.onTime} de ${score.total}`],
     ['Completadas vencidas', String(score.late)],
     ['Sin terminar', String(score.pending)],
+    ['Dentro de lo estimado', `${score.withinEstimate} de ${score.total}`],
     ['Priorización', score.efficiency === null ? '—' : `${score.efficiency}%`],
-    ['Tiempo total', formatClock(score.seconds)],
+    ['Tiempo real / estimado', `${minutesToHMS(score.actual)} / ${minutesToHMS(score.estimate)}`],
+    ['Terminaste a las', clockLabel(score.minutes)],
   ];
 }
 
@@ -101,18 +103,20 @@ export class Hud {
     const kpis = make('dl', 'final-kpis');
     for (const [label, value] of finalLines(score)) kpis.append(make('dt', null, label), make('dd', null, value));
 
-    const longest = Math.max(1, ...score.tasks.map((task) => task.worked));
+    const longest = Math.max(1, ...score.tasks.map((task) => Math.max(task.actual, task.estimate)));
     const bars = make('ul', 'final-bars');
     for (const task of score.tasks) {
-      const li = make('li', `outcome-${task.outcome}`);
+      const li = make('li', `outcome-${task.outcome}${task.actual > task.estimate ? ' over' : ''}`);
       const head = make('div', 'final-bar-head');
-      head.append(make('span', null, task.title), make('span', 'final-bar-tag', `${OUTCOME_LABEL[task.outcome]} · ${formatClock(task.worked)}`));
+      head.append(make('span', null, task.title), make('span', 'final-bar-tag', OUTCOME_LABEL[task.outcome]));
       const bar = make('span', 'final-bar');
       const fill = make('span', 'final-bar-fill');
-      fill.style.width = `${Math.max(4, Math.round((task.worked / longest) * 100))}%`;
+      fill.style.width = `${Math.max(3, Math.round((task.actual / longest) * 100))}%`;
       fill.title = PRIORITY_LABEL[task.priority];
-      bar.append(fill);
-      li.append(head, bar);
+      const mark = make('span', 'final-bar-est');
+      mark.style.left = `${Math.round((task.estimate / longest) * 100)}%`;
+      bar.append(fill, mark);
+      li.append(head, bar, make('small', 'final-bar-times', `Real: ${minutesToHMS(task.actual)} / Est: ${minutesToHMS(task.estimate)}`));
       bars.append(li);
     }
 
@@ -133,7 +137,7 @@ export class Hud {
     }
 
     const card = make('div', 'final-card');
-    card.append(make('h2', null, FINAL_TITLE[score.reason] ?? FINAL_TITLE.timeout), points, kpis, make('h3', null, 'Tiempo por tarea'), bars, actions);
+    card.append(make('h2', null, FINAL_TITLE[score.reason] ?? FINAL_TITLE.timeout), points, kpis, make('h3', null, 'Tiempo real vs. estimado'), bars, actions);
     this.final.replaceChildren(card);
     this.final.hidden = false;
   }

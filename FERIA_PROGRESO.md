@@ -128,6 +128,26 @@ el juego de la feria (`frontend/public/juego`) no se tocó.
   mejor puntaje del celular y "Jugar otra vez".
 - Probado en el navegador vertical (375x812), acostado (812x375) y PC (1280x720), con una partida completa.
   Tests: `cd web; node --test tests/*.test.js` (21 tests). Pasos de subida en `web/README.md`.
+- Publicado en GitHub Pages: https://aaronschammas.github.io/Tino_juego/web/
+
+### Más parecido a Tino (revisión tras probarlo)
+
+El panel simple (▶ Iniciar / ✓ Completar) no se parecía a Tino. Se rehízo copiando la app real
+(`Tino_tasks-dev`: `TaskItem`, `TaskList`, `StartTimerDurationModal`, `TimerWidget`, `projects/[id]/page.tsx`,
+reglas de `tasks.service` y `time-tracking.service`):
+
+- Página del proyecto con indicadores (Tareas, Estimado total, Tiempo real, Subtareas), Lista / Tablero con las
+  4 columnas, tarjetas de TaskItem (tipo, avatar, prioridad, estado, 📅, Real / Est) y Seguimiento.
+- Cronómetro: ⏱️ → "Configurar duración" (propone lo que falta de la estimación) → "Iniciar cronómetro"; se asigna
+  sola y pasa a En progreso; "Ya tienes un timer activo. Detenlo antes de cambiar de tarea."; no hay timer en tareas
+  padre ("Inicia el timer en una subtarea") y el padre sigue el estado de sus subtareas (`resolveParentStatus`).
+- Temporizador flotante (pausa, Finalizar y Completar Tarea, Detener temporizador), botón "Temporizador" con
+  "Iniciar seguimiento", y "¡Tiempo cumplido!" con +5/+10/+15/+30 min o "Finalizar aquí".
+- Menú → de estados (Mover a En progreso / Bloqueadas / Completadas...). Completar exige el trabajo hecho.
+- Reloj de oficina acelerado (1 s = 1 min, desde 09:00) para que duraciones y vencimientos se vean como en Tino.
+- Tareas: "Se cayó el sistema" (padre) con "Reconectar los cables del rack" y "Reiniciar el servidor", "Llevarle un
+  café al jefe" y "Recibir al cliente" (llega 09:20). Final con tiempo real vs. estimado por tarea.
+- Probado con una partida completa en el navegador (vertical y PC), incluido el tiempo cumplido. 24 tests.
 
 ## Cómo levantarlo
 
