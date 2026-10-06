@@ -44,6 +44,7 @@
           <span class="t-pill is-active">Activo</span>
           <span id="t-timer-pill" class="t-pill timer" hidden>Timer activo</span>
         </div>
+        <button type="button" id="t-report-open" class="t-report-button" data-hint="report">📄 Exportar informe</button>
 
         <div class="t-kpis">
           <article class="t-kpi"><small>Tareas</small><strong id="kpi-tasks">0</strong><span id="kpi-tasks-sub"></span></article>
@@ -112,7 +113,15 @@
         <div><small>Tarea</small><p id="t-widget-task"></p><p id="t-widget-status" class="t-widget-status"></p></div>
         <div class="t-widget-grid">
           <div><small>Estimación</small><strong id="t-widget-target"></strong></div>
-          <div class="blue"><small>Restante</small><strong id="t-widget-left"></strong></div>
+          <div id="t-widget-left-box" class="blue"><small id="t-widget-left-label">Restante</small><strong id="t-widget-left"></strong></div>
+        </div>
+        <div id="t-widget-more" class="t-widget-more" hidden>
+          <p>¿Deseas agregar más tiempo?</p>
+          <div class="t-widget-add">
+            <button type="button" data-add="5" data-hint="widget-add">+5 min</button>
+            <button type="button" data-add="10">+10 min</button>
+            <button type="button" data-add="15">+15 min</button>
+          </div>
         </div>
         <button type="button" id="t-widget-finish" class="t-btn primary block" data-hint="widget-finish">✔ Finalizar y Completar Tarea</button>
         <button type="button" id="t-widget-stop" class="t-btn danger block">Detener temporizador</button>
@@ -165,29 +174,6 @@
     </div>
   </div>
 
-  <!-- "¡Tiempo cumplido!" cuando se termina la duración del cronómetro. -->
-  <div id="t-expired" class="t-modal sheet" role="dialog" aria-modal="true" hidden>
-    <div class="t-modal-card">
-      <div class="t-modal-icon-head"><span class="t-modal-icon amber">⏰</span><div><small class="amber">Temporizador</small><h2>¡Tiempo cumplido!</h2></div></div>
-      <p class="t-modal-text">La sesión de trabajo para el proyecto <strong>Oficina · Hoy</strong> y la tarea <strong id="t-expired-task"></strong> ha finalizado y se ha registrado con éxito.</p>
-      <p class="t-modal-question">¿Deseas agregar más tiempo?</p>
-      <small class="t-caption">Accesos rápidos</small>
-      <div class="t-quick">
-        <button type="button" data-add="5" data-hint="expired-add">+5 min</button>
-        <button type="button" data-add="10">+10 min</button>
-        <button type="button" data-add="15">+15 min</button>
-        <button type="button" data-add="30">+30 min</button>
-      </div>
-      <div class="t-field"><span>O ingresa un tiempo personalizado</span>
-        <div class="t-hm"><label><input id="t-expired-hours" type="number" inputmode="numeric" min="0" value="0" /><i>h</i></label><label><input id="t-expired-minutes" type="number" inputmode="numeric" min="0" max="59" value="5" /><i>m</i></label></div>
-      </div>
-      <div class="t-modal-actions spread">
-        <button type="button" id="t-expired-finish" class="t-link" data-hint="expired-finish">Finalizar aquí</button>
-        <button type="button" id="t-expired-start" class="t-btn primary">+ Iniciar temporizador</button>
-      </div>
-    </div>
-  </div>
-
   <div id="minigame" role="dialog" aria-modal="true" aria-labelledby="minigame-title" hidden>
     <div class="mg-panel">
       <header class="mg-head">
@@ -199,7 +185,41 @@
     </div>
   </div>
 
-  <div id="final" role="dialog" aria-modal="true" hidden></div>
+  <!-- Informe "Resumen operativo" (ReportModal de Tino). -->
+  <div id="t-report" class="t-report" role="dialog" aria-modal="true" aria-label="Informe" hidden>
+    <div class="t-report-card">
+      <header class="t-report-head">
+        <div><small>Informe</small><h2>Resumen operativo</h2></div>
+        <div class="t-report-actions">
+          <button type="button" id="t-report-refresh" class="t-report-act">⟳ Actualizar</button>
+          <button type="button" id="t-report-excel" class="t-report-act excel">▦ Excel</button>
+          <button type="button" id="t-report-pdf" class="t-report-act pdf">⬇ PDF</button>
+          <button type="button" id="t-report-close" class="t-report-x" aria-label="Cerrar informe">✕</button>
+        </div>
+      </header>
+      <div class="t-report-body">
+        <div id="t-report-result" class="t-report-result" hidden></div>
+        <div class="t-report-grid">
+          <aside class="t-report-filters">
+            <label><small>Proyecto</small><select disabled><option>Oficina · Hoy</option></select></label>
+            <label><small>Usuario</small>
+              <select id="t-report-user"><option value="all">Todos los usuarios</option><option value="me">Vos</option><option value="none">Sin asignar</option></select>
+            </label>
+            <label><small>Estado</small>
+              <select id="t-report-status">
+                <option value="all">Todos</option>
+                <option value="TODO">Por hacer</option>
+                <option value="IN_PROGRESS">En progreso</option>
+                <option value="BLOCKED">Bloqueada</option>
+                <option value="DONE">Completada</option>
+              </select>
+            </label>
+          </aside>
+          <main id="t-report-main" class="t-report-main"></main>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <noscript>Este juego necesita JavaScript.</noscript>
   <script type="module" src="js/main.js"></script>

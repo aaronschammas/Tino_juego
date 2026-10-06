@@ -149,6 +149,16 @@ reglas de `tasks.service` y `time-tracking.service`):
   café al jefe" y "Recibir al cliente" (llega 09:20). Final con tiempo real vs. estimado por tarea.
 - Probado con una partida completa en el navegador (vertical y PC), incluido el tiempo cumplido. 24 tests.
 
+### Informe y sin cartel de tiempo cumplido
+
+- Se sacó el cartel "¡Tiempo cumplido!" (se veía como una publicidad y cortaba el minijuego). Al cumplirse la duración
+  el cronómetro sigue, como el TimerWidget de Tino: "TIEMPO CUMPLIDO", contador "Extra" en rojo y +5/+10/+15 min.
+- "📄 Exportar informe" en el proyecto abre el ReportModal de Tino ("Informe · Resumen operativo") con los datos de la
+  partida: Completadas, No completadas (vencidas), Tiempo real, Desvío, Tareas por estado, Tiempo real vs. estimado
+  y Tareas con más tiempo registrado; filtros de usuario y estado; Excel (CSV con ; y BOM) y PDF (imprime solo el
+  informe). Al terminar la partida se abre solo con el resultado arriba (puntos, récord, priorización) y "Jugar otra vez";
+  reemplaza a la pantalla final anterior. 25 tests.
+
 ## Cómo levantarlo
 
 ```powershell

@@ -90,7 +90,6 @@ export class OfficeSim {
     this.started = false;
     this.elapsed = 0;
     this.timer = null;
-    this.expired = null;
     this.loose = 0;
     this.picks = 0;
     this.goodPicks = 0;
@@ -178,10 +177,9 @@ export class OfficeSim {
       const task = this.task(this.timer.taskId);
       if (task) task.actual += minutes;
       else this.loose += minutes;
-      if (this.timer.elapsed >= this.timer.target) {
-        this.expired = { taskId: this.timer.taskId };
-        this.timer = null;
-        this.events.push({ type: 'expired', taskId: this.expired.taskId });
+      if (!this.timer.overtime && this.timer.elapsed >= this.timer.target) {
+        this.timer.overtime = true;
+        this.events.push({ type: 'overtime', taskId: this.timer.taskId });
       }
     }
 
@@ -220,8 +218,7 @@ export class OfficeSim {
     if (taskId && (!task?.appeared || this.isParent(task))) return { ok: false, error: 'parent' };
 
     this.started = true;
-    this.expired = null;
-    this.timer = { taskId: task?.id ?? null, target: minutes, elapsed: 0, paused: false };
+    this.timer = { taskId: task?.id ?? null, target: minutes, elapsed: 0, paused: false, overtime: false };
     if (!task) return { ok: true, urgentId: null };
 
     task.assigned = true;
@@ -253,17 +250,12 @@ export class OfficeSim {
     this.timer = null;
   }
 
-  /** "¡Tiempo cumplido!" → agregar minutos: vuelve a iniciar el cronómetro de la misma tarea. */
-  addTime(minutes) {
-    const taskId = this.expired?.taskId ?? null;
-    if (!this.expired) return { ok: false };
-    this.expired = null;
-    return this.startTimer(taskId, minutes);
-  }
-
-  /** "¡Tiempo cumplido!" → "Finalizar aquí". */
-  dismissExpired() {
-    this.expired = null;
+  /** "TIEMPO CUMPLIDO" → +5 / +10 / +15 min del temporizador: suma minutos a la sesión en curso. */
+  addMinutes(minutes) {
+    if (!this.timer || !(minutes > 0)) return;
+    this.timer.target += minutes;
+    this.timer.overtime = this.timer.elapsed >= this.timer.target;
+    this.timer.paused = false;
   }
 
   /** "Finalizar y Completar Tarea" del temporizador: completa la tarea del timer y lo detiene. */
@@ -329,7 +321,6 @@ export class OfficeSim {
     if (this.finished) return;
     this.finished = reason;
     this.timer = null;
-    this.expired = null;
     this.events.push({ type: 'finished', reason });
   }
 
@@ -339,21 +330,18 @@ export class OfficeSim {
 
   /**
    * Qué control de Tino resaltar (el juego no tiene instrucciones escritas):
-   *   expired-finish / expired-add  el cartel de "¡Tiempo cumplido!"
-   *   widget-finish                 "Finalizar y Completar Tarea" (el trabajo del timer ya está hecho)
-   *   widget-resume                 el timer quedó en pausa
-   *   status:<id>                   completar una tarea resuelta sin timer
-   *   timer:<id>                    iniciar el cronómetro de lo más urgente
+   *   widget-finish  "Finalizar y Completar Tarea" (el trabajo del timer ya está hecho)
+   *   widget-resume  el timer quedó en pausa
+   *   widget-add     se cumplió el tiempo y el trabajo no está hecho: +5 min
+   *   status:<id>    completar una tarea resuelta sin timer
+   *   timer:<id>     iniciar el cronómetro de lo más urgente
    */
   hint() {
     if (this.finished) return null;
-    if (this.expired) {
-      const task = this.task(this.expired.taskId);
-      return task?.solved ? 'expired-finish' : 'expired-add';
-    }
     const active = this.timer?.taskId ? this.task(this.timer.taskId) : null;
     if (active?.solved) return 'widget-finish';
     if (this.timer?.paused) return 'widget-resume';
+    if (this.timer?.overtime) return 'widget-add';
     if (this.timer) return null;
     const solved = this.work.find((task) => task.solved && task.status !== STATUS.DONE);
     if (solved) return `status:${solved.id}`;
@@ -417,7 +405,7 @@ export class OfficeSim {
   /**
    * Qué hace el personaje:
    *   work       camina a la tarea del timer y trabaja (ahí se abre el minijuego)
-   *   wait       espera al lado de la tarea (timer en pausa o tiempo cumplido)
+   *   wait       espera al lado de la tarea (timer en pausa o trabajo terminado)
    *   idle       espera en su lugar
    *   celebrate  todo completado
    */
@@ -426,10 +414,6 @@ export class OfficeSim {
       return this.finished === 'cleared'
         ? { mode: 'celebrate', taskId: null, message: '¡Oficina en orden!' }
         : { mode: 'idle', taskId: null, message: '¡Uf! Se terminó el día.' };
-    }
-    if (this.expired) {
-      const task = this.task(this.expired.taskId);
-      if (task) return { mode: 'wait', taskId: task.id, message: '⏰ ¡Tiempo cumplido!' };
     }
     const active = this.timer?.taskId ? this.task(this.timer.taskId) : null;
     if (this.timer && !active) return { mode: 'idle', taskId: null, message: 'Ese tiempo no es de ninguna tarea.' };

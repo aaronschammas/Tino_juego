@@ -3,7 +3,7 @@
 Juego estático (HTML + CSS + JavaScript, sin dependencias, sin build y sin base de datos) para jugar desde el celular.
 La mitad del juego **es Tino**: la página de un proyecto con las mismas tarjetas, botones, textos y pasos que la app
 real. El personaje hace en la oficina lo que se maneja desde Tino, con minijuegos estilo Among Us.
-Una partida dura unos 2 o 3 minutos y termina con estadísticas.
+Una partida dura unos 2 o 3 minutos y termina con el **informe de Tino** con los datos de la partida.
 
 El tiempo de la oficina va acelerado: **1 segundo real = 1 minuto** (el día arranca 09:00). Así las estimaciones,
 el cronómetro y los vencimientos se ven como en Tino (0 h 15 min, 📅 09:45...).
@@ -18,7 +18,8 @@ el cronómetro y los vencimientos se ven como en Tino (0 h 15 min, 📅 09:45...
 | "Ya tienes un timer activo. Detenlo antes de cambiar de tarea." | Igual |
 | Tarea padre: "Inicia el timer en una subtarea"; su estado sigue a las subtareas | "Se cayó el sistema" con 2 subtareas |
 | **Temporizador** flotante: pausa, **Finalizar y Completar Tarea**, **Detener temporizador** | Cerrar el minijuego con ✕ pausa el timer |
-| **¡Tiempo cumplido!**: +5 / +10 / +15 / +30 min o "Finalizar aquí" | Agregar tiempo sigue el minijuego |
+| Temporizador con el tiempo cumplido: "TIEMPO CUMPLIDO", "Extra" y +5 / +10 / +15 min | El trabajo no se corta; el tiempo extra suma al real |
+| **Exportar informe** → "Resumen operativo": completadas, vencidas, tiempo real, desvío, tareas por estado, tareas con más tiempo; filtros y descarga en **Excel** o **PDF** | Se puede abrir en cualquier momento y se abre solo al terminar, con el resultado de la partida |
 | Menú **→**: Mover a En progreso / Bloqueadas / Completadas | Completar exige el trabajo hecho |
 | ✓ Tomar tarea, vista **Lista / Tablero**, indicadores del proyecto, Seguimiento | Igual |
 
@@ -70,8 +71,9 @@ Para bajarlo después del evento: **Settings → Pages → Unpublish site** (o b
 | `js/main.js` | Arma la oficina y el game loop (paso fijo 60 Hz); abre el minijuego cuando el personaje llega |
 | `js/sim.js` | La partida sin DOM con las reglas de Tino: tareas y subtareas, estados, cronómetro con duración, tiempo cumplido, vencimientos, puntos y estadísticas |
 | `js/scenario.js` | Tareas, cómo se ve cada una y el mapa de la oficina |
-| `js/tino.js` | Tino dentro del juego: página del proyecto, tarjetas, Lista/Tablero, menú de estados, Configurar duración, Temporizador y ¡Tiempo cumplido! |
-| `js/hud.js` | Puntos, globo del personaje, avisos y estadísticas finales |
+| `js/tino.js` | Tino dentro del juego: página del proyecto, tarjetas, Lista/Tablero, menú de estados, Configurar duración y Temporizador |
+| `js/report.js` | Informe "Resumen operativo" con los datos de la partida, descarga en Excel (CSV) y PDF (imprimir) y resultado final |
+| `js/hud.js` | Puntos, globo del personaje y avisos |
 | `js/minigames/` | Los 4 minijuegos (`cables`, `cafe`, `tarjeta`, `pc`) y la ventana que los abre |
 | `js/art.js` / `js/sprites.js` / `js/pixel.js` | Pixel art generado por código |
 | `js/effects.js` | Partículas: chispas, vapor, brillitos |

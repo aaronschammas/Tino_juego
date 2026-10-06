@@ -9,6 +9,7 @@ import { ACTIONS, MAP_ROWS, SLOTS, TASKS, legend } from './scenario.js';
 import { clockLabel, OfficeSim, qualityFrom } from './sim.js';
 import { TinoApp } from './tino.js';
 import { Hud } from './hud.js';
+import { ReportView } from './report.js';
 import { MinigameHost } from './minigames/index.js';
 
 // --- Oficina --------------------------------------------------------------
@@ -44,7 +45,9 @@ const tino = new TinoApp(sim, {
     hud.showToast(text, 'warn');
   },
   onChange: () => hud.setPoints(sim.points()),
+  onReport: () => report.open(),
 });
+const report = new ReportView(sim, { tinoUrl: CONFIG.TINO_URL });
 const officeClock = document.getElementById('office-clock');
 
 let behavior = sim.behavior();
@@ -87,13 +90,11 @@ function playEvents() {
     } else if (event.type === 'solved') {
       hud.showToast('¡Hecho! Ahora completala en Tino', 'good');
       if (object) effects.sparkle(object.effectPoint);
-    } else if (event.type === 'expired') {
-      hud.showToast('⏰ ¡Tiempo cumplido!', 'warn');
     } else if (event.type === 'done') {
       hud.showToast(event.late ? 'Completada, pero vencida' : '¡Completada a tiempo!', event.late ? 'warn' : 'good');
     } else if (event.type === 'finished') {
       minigames.hide();
-      setTimeout(() => hud.showFinal(sim.score(), CONFIG.TINO_URL), CONFIG.FINAL_DELAY_MS);
+      setTimeout(() => report.open(sim.score()), CONFIG.FINAL_DELAY_MS);
     }
     refresh();
   }
@@ -117,7 +118,7 @@ function openMinigame(task) {
 function driveWorker(dt) {
   behavior = sim.behavior((id) => ACTIONS[id]?.say ?? '');
   const target = objects.find((object) => object.action.key === behavior.taskId);
-  const keep = minigames.current && (sim.timer?.taskId === minigames.current.taskId || sim.expired?.taskId === minigames.current.taskId);
+  const keep = minigames.current && sim.timer?.taskId === minigames.current.taskId;
   if (minigames.isOpen && !keep) minigames.hide();
 
   if (target && (behavior.mode === 'work' || behavior.mode === 'wait')) {

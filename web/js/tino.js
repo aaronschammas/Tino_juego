@@ -47,17 +47,17 @@ function setClass(node, className) {
 }
 
 export class TinoApp {
-  constructor(sim, { onMistake, onNotice, onChange }, doc = document) {
+  constructor(sim, { onMistake, onNotice, onChange, onReport }, doc = document) {
     this.sim = sim;
     this.doc = doc;
     this.onMistake = onMistake;
     this.onNotice = onNotice;
     this.onChange = onChange;
+    this.onReport = onReport;
     this.cards = new Map();
     this.view = 'list';
     this.durationTask = null;
     this.menuTask = null;
-    this.expiredShown = false;
     this.widgetOpen = false;
     this.hintKey = null;
     const $ = (id) => doc.getElementById(id);
@@ -90,6 +90,9 @@ export class TinoApp {
       widgetStatus: $('t-widget-status'),
       widgetTarget: $('t-widget-target'),
       widgetLeft: $('t-widget-left'),
+      widgetLeftBox: $('t-widget-left-box'),
+      widgetLeftLabel: $('t-widget-left-label'),
+      widgetMore: $('t-widget-more'),
       widgetFinish: $('t-widget-finish'),
       duration: $('t-duration'),
       durationTask: $('t-duration-task'),
@@ -101,10 +104,6 @@ export class TinoApp {
       selectorTask: $('t-selector-task'),
       selectorHours: $('t-selector-hours'),
       selectorMinutes: $('t-selector-minutes'),
-      expired: $('t-expired'),
-      expiredTask: $('t-expired-task'),
-      expiredHours: $('t-expired-hours'),
-      expiredMinutes: $('t-expired-minutes'),
     };
     this.bind();
   }
@@ -131,11 +130,15 @@ export class TinoApp {
     });
     el.widgetFinish.addEventListener('click', () => this.act(() => this.complete(() => this.sim.finishTimerTask())));
     doc.getElementById('t-widget-stop').addEventListener('click', () => this.act(() => this.sim.stopTimer()));
+    el.widgetMore.querySelectorAll('[data-add]').forEach((button) => {
+      button.addEventListener('click', () => this.act(() => this.sim.addMinutes(Number(button.dataset.add))));
+    });
+    doc.getElementById('t-report-open').addEventListener('click', () => this.onReport?.());
 
     for (const modal of [el.duration, el.selector]) {
       modal.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', () => this.closeModals()));
     }
-    for (const [hours, minutes] of [[el.durationHours, el.durationMinutes], [el.selectorHours, el.selectorMinutes], [el.expiredHours, el.expiredMinutes]]) {
+    for (const [hours, minutes] of [[el.durationHours, el.durationMinutes], [el.selectorHours, el.selectorMinutes]]) {
       const normalize = () => {
         const value = normalizeDuration(hours.value, minutes.value);
         hours.value = value.hours;
@@ -148,15 +151,6 @@ export class TinoApp {
 
     el.selectorTask.addEventListener('change', () => this.fillSuggestion(el.selectorTask.value, el.selectorHours, el.selectorMinutes));
     doc.getElementById('t-selector-start').addEventListener('click', () => this.startFromSelector());
-
-    el.expired.querySelectorAll('[data-add]').forEach((button) => {
-      button.addEventListener('click', () => this.act(() => this.sim.addTime(Number(button.dataset.add))));
-    });
-    doc.getElementById('t-expired-start').addEventListener('click', () => {
-      const minutes = parseDuration(el.expiredHours.value, el.expiredMinutes.value);
-      if (minutes) this.act(() => this.sim.addTime(minutes));
-    });
-    doc.getElementById('t-expired-finish').addEventListener('click', () => this.act(() => this.sim.dismissExpired()));
 
     doc.addEventListener('pointerdown', (event) => {
       if (this.menuTask && !event.target.closest('#t-menu, .t-status-btn')) this.closeMenu();
@@ -522,16 +516,23 @@ export class TinoApp {
       return;
     }
     const task = timer.taskId ? sim.task(timer.taskId) : null;
-    if (sim.hint() === 'widget-finish') this.widgetOpen = true;
+    const hint = sim.hint();
+    if (hint === 'widget-finish' || hint === 'widget-add') this.widgetOpen = true;
     const left = sim.timerRemaining();
-    setText(el.widgetTime, formatTimer(left));
-    setText(el.widgetLeft, formatTimer(left));
+    const time = `${timer.overtime ? '-' : ''}${formatTimer(Math.abs(left))}`;
+    setText(el.widgetTime, time);
+    setText(el.widgetLeft, time);
+    setText(el.widgetLeftLabel, timer.overtime ? 'Extra' : 'Restante');
+    setClass(el.widgetLeftBox, timer.overtime ? 'red' : 'blue');
     setText(el.widgetTarget, `${Math.floor(timer.target / 60)}h ${timer.target % 60}m`);
     el.widgetBar.style.width = `${Math.min(100, (timer.elapsed / timer.target) * 100)}%`;
     el.widgetRunning.classList.toggle('paused', timer.paused);
+    el.widgetRunning.classList.toggle('overtime', timer.overtime && !timer.paused);
     setText(el.widgetPause, timer.paused ? '▶' : '❚❚');
     el.widgetPause.setAttribute('aria-label', timer.paused ? 'Reanudar' : 'Pausar');
-    el.widgetBadge.hidden = !timer.paused;
+    el.widgetBadge.hidden = !timer.paused && !timer.overtime;
+    setText(el.widgetBadge, timer.paused ? 'PAUSADO' : 'TIEMPO CUMPLIDO');
+    el.widgetMore.hidden = !timer.overtime;
     el.widgetBody.hidden = !this.widgetOpen;
     setText(el.widgetToggle, this.widgetOpen ? 'Ocultar ▴' : 'Ver ▾');
     setText(el.widgetTask, task?.title ?? 'Tiempo registrado a nivel proyecto');
@@ -540,23 +541,9 @@ export class TinoApp {
     setText(el.trackingTask, task?.title ?? 'Proyecto');
   }
 
-  renderExpired() {
-    const { sim, el } = this;
-    if (sim.expired && !this.expiredShown) {
-      const task = sim.expired.taskId ? sim.task(sim.expired.taskId) : null;
-      setText(el.expiredTask, task?.title ?? '—');
-      el.expiredHours.value = '0';
-      el.expiredMinutes.value = '5';
-      this.closeModals(false);
-      this.closeMenu();
-    }
-    this.expiredShown = Boolean(sim.expired);
-    el.expired.hidden = !sim.expired;
-  }
-
   /** Resalta (sin texto) el control que hay que tocar ahora y lo trae a la vista. */
   renderHint() {
-    let hint = this.sim.hint();
+    let hint = this.sim.finished ? 'report' : this.sim.hint();
     if (!this.el.duration.hidden) hint = 'modal-start';
     else if (hint?.startsWith('status:') && this.menuTask?.id === hint.slice(7)) hint = `complete:${this.menuTask.id}`;
     this.doc.querySelectorAll('[data-hint]').forEach((node) => node.classList.toggle('hint', node.dataset.hint === hint));
@@ -578,7 +565,6 @@ export class TinoApp {
     setText(el.kpiSubtasksSub, `${stats.parents} tareas padre`);
     this.placeCards();
     this.renderWidget();
-    this.renderExpired();
     this.renderHint();
   }
 }

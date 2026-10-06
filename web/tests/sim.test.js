@@ -17,7 +17,8 @@ import {
 } from '../js/sim.js';
 import { ACTIONS, MAP_ROWS, SLOTS, TASKS } from '../js/scenario.js';
 import { dueChip, STATUS_ACTIONS, timeChip } from '../js/tino.js';
-import { finalLines, placeBubble } from '../js/hud.js';
+import { placeBubble } from '../js/hud.js';
+import { buildReport, formatHours, rememberBest, reportCsv, resultLines } from '../js/report.js';
 
 const DEFS = [
   {
@@ -93,26 +94,23 @@ test('pausa: el tiempo no corre mientras el cronómetro está en pausa', () => {
   assert.equal(sim.task('a').actual, 3);
 });
 
-test('¡Tiempo cumplido!: el cronómetro se detiene solo y se puede agregar tiempo o finalizar', () => {
+test('tiempo cumplido: el cronómetro sigue como "Extra", sin cortar el trabajo, y se le pueden sumar minutos', () => {
   const sim = new OfficeSim(DEFS);
   sim.startTimer('a', 5);
   sim.drainEvents();
-  sim.tick(5);
-  assert.equal(sim.timer, null);
-  assert.deepEqual(sim.expired, { taskId: 'a' });
-  assert.ok(sim.drainEvents().some((event) => event.type === 'expired'));
-  assert.equal(sim.hint(), 'expired-add');
-  assert.equal(sim.behavior().mode, 'wait');
-  sim.addTime(5);
+  sim.tick(6);
   assert.equal(sim.timer.taskId, 'a');
-  assert.equal(sim.timer.target, 5);
-  assert.equal(sim.mistakes, 0);
-  sim.tick(5);
+  assert.equal(sim.timer.overtime, true);
+  assert.equal(sim.timerRemaining(), -1);
+  assert.equal(sim.task('a').actual, 6);
+  assert.ok(sim.drainEvents().some((event) => event.type === 'overtime'));
+  assert.equal(sim.hint(), 'widget-add');
+  assert.equal(sim.behavior().mode, 'work');
+  sim.addMinutes(5);
+  assert.equal(sim.timer.target, 10);
+  assert.equal(sim.timer.overtime, false);
   sim.solve('a');
-  assert.equal(sim.hint(), 'expired-finish');
-  sim.dismissExpired();
-  assert.equal(sim.expired, null);
-  assert.equal(sim.hint(), 'status:a');
+  assert.equal(sim.hint(), 'widget-finish');
 });
 
 test('las tareas llegan en su minuto y avisan', () => {
@@ -274,10 +272,50 @@ test('calidad del minijuego', () => {
   assert.equal(qualityFrom({ seconds: 60, mistakes: 0 }), 0);
 });
 
-test('pantalla final y globo', () => {
-  const lines = finalLines({ onTime: 2, total: 4, late: 1, pending: 1, withinEstimate: 3, efficiency: null, actual: 30, estimate: 50, minutes: 75 });
+test('informe "Resumen operativo" con los datos de la partida', () => {
+  const sim = new OfficeSim(DEFS);
+  sim.startTimer('a', 5);
+  sim.tick(8);
+  sim.solve('a');
+  sim.finishTimerTask();
+  sim.startTimer('c', 10);
+  sim.tick(25);
+  sim.setStatus('c', STATUS.BLOCKED);
+  const report = buildReport(sim);
+  assert.deepEqual(report.summary, {
+    total: 4,
+    completed: 1,
+    completionRate: 25,
+    incomplete: 3,
+    overdue: 1,
+    lateDone: 0,
+    actual: 33,
+    estimate: 35,
+    deviation: -2,
+  });
+  assert.deepEqual(report.statusDistribution.map((item) => item.count), [2, 0, 1, 1]);
+  assert.deepEqual(report.tasks.map((task) => task.id), ['c', 'a', 'b', 'd']);
+  assert.equal(report.tasks[1].parent, 'Padre');
+  assert.equal(report.tasks[2].user, 'Sin asignar');
+  assert.equal(buildReport(sim, { status: STATUS.DONE }).summary.total, 1);
+  assert.equal(buildReport(sim, { user: 'none' }).summary.total, 2);
+  assert.equal(formatHours(-3), '-00:03:00');
+
+  const csv = reportCsv(report).split('\r\n');
+  assert.ok(csv[0].startsWith('﻿Tarea;Tarea padre;Proyecto;Usuario;Estado'));
+  assert.equal(csv[2], 'A;Padre;Oficina · Hoy;Vos;Completada;Crítica;09:30;00:08:00;00:10:00;-00:02:00;A tiempo');
+});
+
+test('resultado de la partida, mejor puntaje y globo', () => {
+  const lines = resultLines({ onTime: 2, total: 4, withinEstimate: 3, efficiency: null, minutes: 75 });
   assert.deepEqual(lines[0], ['Completadas a tiempo', '2 de 4']);
   assert.deepEqual(lines.at(-1), ['Terminaste a las', '10:15']);
+  const store = new Map();
+  const storage = { getItem: (key) => store.get(key) ?? null, setItem: (key, value) => store.set(key, value) };
+  assert.deepEqual(rememberBest(100, storage), { best: 100, record: false });
+  assert.deepEqual(rememberBest(150, storage), { best: 150, record: true });
+  assert.deepEqual(rememberBest(90, storage), { best: 150, record: false });
+  assert.deepEqual(rememberBest(10, null), { best: 10, record: false });
   const spot = placeBubble({ x: 5, y: 5 }, { width: 100, height: 30 }, { left: 0, right: 300, top: 0 });
   assert.equal(spot.x, 54);
   assert.equal(spot.y, 34);
